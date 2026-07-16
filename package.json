@@ -1,0 +1,89 @@
+{
+  "name": "white-noise",
+  "displayName": "White Noise & Pomodoro",
+  "description": "Procedural white/pink/brown noise, binaural beats, isochronic tones and solfeggio frequencies with an integrated Pomodoro timer.",
+  "version": "0.0.1",
+  "publisher": "shin1007",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shin1007/white-noise"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "white noise",
+    "pink noise",
+    "brown noise",
+    "pomodoro",
+    "binaural beats",
+    "focus",
+    "ambient sound"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "whiteNoise.openPanel",
+        "title": "White Noise: Open Panel"
+      },
+      {
+        "command": "whiteNoise.play",
+        "title": "White Noise: Play"
+      },
+      {
+        "command": "whiteNoise.stop",
+        "title": "White Noise: Stop"
+      },
+      {
+        "command": "whiteNoise.pomodoro.start",
+        "title": "White Noise: Start Pomodoro"
+      },
+      {
+        "command": "whiteNoise.pomodoro.pause",
+        "title": "White Noise: Pause Pomodoro"
+      },
+      {
+        "command": "whiteNoise.pomodoro.reset",
+        "title": "White Noise: Reset Pomodoro"
+      },
+      {
+        "command": "whiteNoise.pomodoro.skipPhase",
+        "title": "White Noise: Skip Pomodoro Phase"
+      }
+    ],
+    "configuration": {
+      "title": "White Noise & Pomodoro",
+      "properties": {
+        "whiteNoise.enablePhaseEndScripts": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow phase-end custom scripts to run. These execute as a JS function inside the extension host (Node) with access to a small vscode API subset -- only enable this if you wrote the script yourself."
+        },
+        "whiteNoise.statusBar.updateIntervalMs": {
+          "type": "number",
+          "default": 1000,
+          "description": "Pomodoro status bar tick interval in milliseconds."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.webview.json && tsc --noEmit -p tsconfig.worklet.json",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^2.29.0",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.5.2"
+  }
+}
