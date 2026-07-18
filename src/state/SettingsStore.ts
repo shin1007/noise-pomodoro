@@ -4,9 +4,9 @@ import { SETTINGS_KEY } from './settings';
 import { migrateSettings } from './migrations';
 
 /**
- * Single globalState key holding the whole settings blob as JSON, roamed via setKeysForSync
- * (only actually syncs across machines if the user has Settings Sync turned on; otherwise it
- * still persists per-machine via VS Code's normal global state storage).
+ * 設定全体を JSON として 1 つの globalState キーに保存します。setKeysForSync で同期候補には
+ * しますが、Settings Sync が有効な場合にだけマシン間で実際に同期されます。無効でも VS Code
+ * の通常の global state 保存先には端末ごとに永続化されます。
  */
 export class SettingsStore {
   private settings: WhiteNoiseSettings;
@@ -20,8 +20,8 @@ export class SettingsStore {
     return this.settings;
   }
 
-  /** Writes whatever is currently referenced by get() -- callers mutate preset/pomodoro objects
-   * in place (same pattern used throughout extension.ts) and then call this to persist. */
+  /** get() が指している現在の内容を書き込みます。呼び出し側は preset / pomodoro を
+   * その場で更新し（extension.ts 全体で同じ方針）、最後にこれを呼んで永続化します。 */
   async persist(): Promise<void> {
     await this.context.globalState.update(SETTINGS_KEY, this.settings);
   }

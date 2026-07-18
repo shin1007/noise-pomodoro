@@ -6,15 +6,15 @@ import { logger } from '../utils/logger';
 export interface AudioEngineCallbacks {
   onPlaybackStarted(presetId: string): void;
   onPlaybackError(presetId: string, message: string): void;
-  /** Fired when a non-looping file finishes playing on its own (not via an explicit stop). */
+  /** ループしないファイルが、明示的な停止以外で自然に再生終了したときに呼びます。 */
   onPlaybackEnded(presetId: string): void;
-  /** Fired when the background tab is closed (accidentally or otherwise) while it may have been playing. */
+  /** 再生中の可能性がある状態で、バックグラウンドタブが閉じられたときに呼びます。 */
   onEngineClosed(): void;
 }
 
 /**
- * Owns the hidden-in-spirit (VS Code has no true hidden webview) background WebviewPanel
- * that hosts the actual Web Audio / AudioWorklet graph. Lazily created on first play.
+ * 実際の Web Audio / AudioWorklet グラフを持つバックグラウンド用 WebviewPanel を管理します。
+ * VS Code には完全に隠した webview がないため、実質的に裏で持つ形です。初回再生時に遅延生成します。
  */
 export class AudioEngineWebview {
   private static current: AudioEngineWebview | undefined;
@@ -57,14 +57,14 @@ export class AudioEngineWebview {
     this.panel.webview.html = buildEngineHtml(this.panel.webview, context.extensionUri);
     this.panel.webview.onDidReceiveMessage((message: EngineToExtMessage) => this.handleMessage(message), null, this.disposables);
     this.panel.onDidDispose(() => this.handleDispose(), null, this.disposables);
-    logger.info('AudioEngineWebview created (lazy load).');
+    logger.info('AudioEngineWebview を作成しました（遅延読み込み）。');
   }
 
   play(preset: ResolvedEnginePreset): void {
     this.send({ type: 'eng:play', preset });
   }
 
-  /** Plays a short one-shot sound (e.g. a phase-end chime) without disturbing ambient playback. */
+  /** 背景再生を邪魔せず、短いワンショット音（フェーズ終了音など）を鳴らします。 */
   playOneShot(preset: ResolvedEnginePreset): void {
     this.send({ type: 'eng:playOneShot', preset });
   }
@@ -105,7 +105,7 @@ export class AudioEngineWebview {
     switch (message.type) {
       case 'eng:ready':
         this.ready = true;
-        logger.info('AudioEngineWebview reported ready.');
+        logger.info('AudioEngineWebview が ready を通知しました。');
         for (const queued of this.pending) {
           void this.panel.webview.postMessage(queued);
         }
@@ -134,7 +134,7 @@ export class AudioEngineWebview {
     while (this.disposables.length) {
       this.disposables.pop()?.dispose();
     }
-    logger.warn('AudioEngineWebview tab was closed — audio playback stopped.');
+    logger.warn('AudioEngineWebview のタブが閉じられたため、音声再生を停止しました。');
     this.callbacks.onEngineClosed();
   }
 }

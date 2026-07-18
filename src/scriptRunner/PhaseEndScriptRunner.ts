@@ -2,18 +2,18 @@ import * as vscode from 'vscode';
 import { logger } from '../utils/logger';
 
 /**
- * Runs a user-authored phase-end script. This executes inside the extension host (a real Node
- * process), so unlike the audio custom-code sandbox (AudioWorkletGlobalScope, no Node/DOM APIs)
- * this is NOT meaningfully sandboxed -- `new Function` bodies can still reach Node globals like
- * `process`. It is gated behind an explicit opt-in setting for that reason, and every run is
- * logged to the output channel. Code only ever comes from the user's own globalState-stored
- * config (via their own GUI), never from a workspace file, so this is not a remote-repo RCE
- * vector -- see the design notes in the implementation plan for the full risk discussion.
+ * ユーザー作成のフェーズ終了スクリプトを実行します。これは extension host（実際の Node
+ * プロセス）内で動くため、音声カスタムコードの sandbox（AudioWorkletGlobalScope には
+ * Node / DOM API がない）とは異なり、`new Function` の中身から `process` などの Node
+ * グローバルに到達できる可能性があります。そのため明示的な opt-in 設定で有効化し、
+ * 実行内容はすべて出力チャンネルへ記録します。コードはユーザー自身の GUI から保存された
+ * globalState の設定だけを使い、ワークスペース内ファイルは参照しないため、リモートリポジトリ
+ * 起因の RCE ベクターにはなりません。詳細なリスク整理は実装計画の設計メモを参照してください。
  */
 export function runPhaseEndScript(code: string, phase: 'focus' | 'break'): void {
   const enabled = vscode.workspace.getConfiguration('whiteNoise').get<boolean>('enablePhaseEndScripts', false);
   if (!enabled) {
-    void vscode.window.showWarningMessage('White Noise: a phase-end script is configured but disabled. Enable "whiteNoise.enablePhaseEndScripts" in settings to run it.');
+    void vscode.window.showWarningMessage('White Noise: フェーズ終了スクリプトは設定されていますが無効です。実行するには設定で "whiteNoise.enablePhaseEndScripts" を有効にしてください。');
     return;
   }
 
@@ -25,11 +25,11 @@ export function runPhaseEndScript(code: string, phase: 'focus' | 'break'): void 
 
   logger.info(`Running phase-end script for "${phase}" phase.`);
   try {
-    // eslint-disable-next-line no-new-func -- intentional: user-authored phase-end script.
+    // eslint-disable-next-line no-new-func -- ユーザー作成のフェーズ終了スクリプトを意図的に実行します。
     const fn = new Function('vscode', 'phase', code) as (vscodeApi: typeof api, phaseName: string) => void;
     fn(api, phase);
   } catch (err) {
-    const message = `Phase-end script error: ${(err as Error).message}`;
+    const message = `フェーズ終了スクリプトのエラー: ${(err as Error).message}`;
     logger.error(message);
     void vscode.window.showErrorMessage(`White Noise: ${message}`);
   }

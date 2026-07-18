@@ -36,15 +36,15 @@ export async function selectAudioFile(): Promise<SelectedAudioFile | undefined> 
 }
 
 /**
- * Reads bytes fresh from disk on every call (rather than caching) so playback stays correct
- * if the file changes or -- after Settings Sync roams only the fsPath to another machine --
- * fails with a clear "not found" error instead of playing stale cached audio.
+ * 毎回キャッシュせずにディスクから直接読み直します。そうすることで、ファイルが更新されたときも
+ * 再生内容がずれません。また、Settings Sync が fsPath だけを別マシンに持っていった場合も、
+ * 古いキャッシュ音声を鳴らすのではなく、分かりやすい「見つからない」エラーになります。
  */
 export async function readAudioFile(fsPath: string): Promise<Uint8Array> {
   const uri = vscode.Uri.file(fsPath);
   const stat = await vscode.workspace.fs.stat(uri);
   if (stat.size > MAX_RECOMMENDED_BYTES) {
-    void vscode.window.showWarningMessage(`White Noise: "${fsPath}" is larger than 50MB — ambient loop files are usually much shorter.`);
+    void vscode.window.showWarningMessage(`White Noise: "${fsPath}" は 50MB を超えています。環境音のループファイルは、通常これよりかなり短いです。`);
   }
   return vscode.workspace.fs.readFile(uri);
 }

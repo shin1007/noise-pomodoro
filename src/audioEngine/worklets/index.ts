@@ -1,4 +1,4 @@
-// AudioWorklet processor registration entry point.
+// AudioWorklet プロセッサの登録エントリーポイントです。
 import './noiseProcessor';
 import './toneProcessor';
 import './customCodeProcessor';

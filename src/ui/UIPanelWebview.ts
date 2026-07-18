@@ -4,9 +4,9 @@ import type { ExtToUiMessage, UiToExtMessage } from '../protocol';
 import { logger } from '../utils/logger';
 
 /**
- * Owns the visible GUI WebviewPanel. Holds no playback/settings state itself -- extension.ts
- * is the single source of truth so that audio keeps running (and the status bar keeps working)
- * even when this panel is closed, per the Zen Mode requirement.
+ * 表示用の GUI WebviewPanel を管理します。再生や設定の状態はここでは持たず、
+ * extension.ts を単一の truth source にしているため、このパネルを閉じても音声再生や
+ * ステータスバーは動き続けます。Zen Mode 要件にも対応しやすい構成です。
  */
 export class UIPanelWebview {
   private static current: UIPanelWebview | undefined;
@@ -30,7 +30,7 @@ export class UIPanelWebview {
     UIPanelWebview.current = new UIPanelWebview(panel, context, dispatch);
   }
 
-  /** No-op if the panel isn't currently open -- callers should not need to check first. */
+  /** パネルが開いていなくても何もしません。呼び出し側が事前確認する必要はありません。 */
   static postMessage(message: ExtToUiMessage): void {
     void UIPanelWebview.current?.panel.webview.postMessage(message);
   }
@@ -56,6 +56,6 @@ export class UIPanelWebview {
     while (this.disposables.length) {
       this.disposables.pop()?.dispose();
     }
-    logger.info('UIPanelWebview closed (audio engine, if running, keeps playing).');
+    logger.info('UIPanelWebview を閉じました（音声エンジンは起動中なら再生を継続します）。');
   }
 }

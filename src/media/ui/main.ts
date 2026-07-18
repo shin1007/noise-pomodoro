@@ -27,8 +27,8 @@ let pomodoroConfig: PomodoroConfig | undefined;
 let pomodoroState: PomodoroState = { phase: 'idle', runState: 'stopped', phaseStartedAt: null, phaseDurationSec: 0, elapsedBeforePauseSec: 0 };
 let pomodoroRemainingSec = 0;
 let selectedPresetId: string | null = null;
-// ext:fileSelected only carries {presetId, fileName, fsPath}, not a full PresetConfig.file --
-// tracked separately here so the display updates immediately without waiting for a stateSync.
+// ext:fileSelected には {presetId, fileName, fsPath} しか含まれず、完全な PresetConfig.file は渡ってきません。
+// stateSync を待たずに表示を即時更新できるよう、ここで別管理しています。
 const selectedFileNames: Record<string, string> = {};
 
 function ambientPresets(): PresetConfig[] {
@@ -343,9 +343,9 @@ window.addEventListener('message', (event: MessageEvent<ExtToUiMessage>) => {
     case 'ext:pomodoroTick': {
       pomodoroState = message.pomodoro;
       pomodoroRemainingSec = message.remainingSec;
-      // Update the status text in place rather than a full render() -- this fires every second
-      // while the panel is visible, and a full DOM rebuild would blow away in-progress edits
-      // (e.g. typing in the custom-code textarea) and cause visible flicker.
+      // status テキストだけを差し替え、全面 render() は避けます。
+      // これはパネル表示中に毎秒発火するため、DOM を丸ごと再構築すると
+      // カスタムコード入力中の編集内容が飛んだり、ちらつきが目立ったりします。
       const statusEl = document.getElementById('pomodoro-status');
       if (statusEl) {
         statusEl.textContent = formatPomodoroStatus();

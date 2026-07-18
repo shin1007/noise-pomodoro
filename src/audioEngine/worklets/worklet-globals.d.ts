@@ -1,4 +1,4 @@
-// AudioWorkletGlobalScope globals not covered by the "WebWorker" lib.
+// WebWorker 用 lib では定義されない AudioWorkletGlobalScope のグローバルです。
 declare const sampleRate: number;
 declare const currentTime: number;
 declare const currentFrame: number;

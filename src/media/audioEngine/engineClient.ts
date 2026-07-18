@@ -23,11 +23,11 @@ function post(message: EngineToExtMessage): void {
 let audioContext: AudioContext | undefined;
 let masterGain: GainNode | undefined;
 
-// Worklet-based playback (noise/tone/custom-code presets)
+// worklet ベースの再生（ノイズ / トーン / カスタムコードのプリセット）
 let activeNode: AudioWorkletNode | undefined;
 let activeNodeKind: 'noise' | 'tone' | 'custom' | undefined;
 
-// File-based playback (AudioBufferSourceNode -- no worklet involved)
+// ファイル再生（AudioBufferSourceNode を使用し、worklet は使わない）
 let fileSource: AudioBufferSourceNode | undefined;
 let fileGain: GainNode | undefined;
 
@@ -68,7 +68,7 @@ function stopActive(): void {
     try {
       fileSource.stop();
     } catch {
-      // already stopped/ended -- ignore
+      // すでに停止済み / 終了済みの場合は無視します。
     }
     fileSource.disconnect();
   }
@@ -177,8 +177,10 @@ async function handleFilePlay(preset: Extract<ExtToEngineMessage, { type: 'eng:p
 
 const ONE_SHOT_MAX_MS = 3000;
 
-/** Plays a short one-shot sound (phase-end chime) on its own nodes, independent of the ambient
- * playback tracked by activeNode/fileSource -- so it can overlay without interrupting the loop. */
+/**
+ * フェーズ終了時の短い通知音を、背景再生とは別ノードで鳴らします。
+ * activeNode / fileSource の再生を止めずに重ねられるようにしています。
+ */
 async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'eng:play' }>['preset']): Promise<void> {
   const ctx = await ensureAudioContext();
 

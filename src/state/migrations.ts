@@ -6,10 +6,9 @@ function clone<T>(value: T): T {
 }
 
 /**
- * Validates persisted globalState data and falls back to defaults on any shape mismatch --
- * cheap insurance against a corrupted or pre-release blob rather than crashing activate().
- * There's only ever been schema version 1 so far; this is where future version-to-version
- * migrations would be added.
+ * 永続化された globalState データを検証し、形が少しでも違えば既定値に戻します。
+ * 壊れた blob やプレリリース版の残骸で activate() が落ちるのを避けるための、安価な保険です。
+ * いまのところ schema version は 1 のみですが、将来の版間移行はここに追加します。
  */
 export function migrateSettings(raw: unknown): WhiteNoiseSettings {
   if (!raw || typeof raw !== 'object') {

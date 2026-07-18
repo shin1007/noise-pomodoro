@@ -90,7 +90,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   }
 
-  // --- Pomodoro ---
+  // --- ポモドーロ関連 ---
   const tickIntervalMs = vscode.workspace.getConfiguration('whiteNoise').get<number>('statusBar.updateIntervalMs', 1000);
   const pomodoroTimer = new PomodoroTimer(settingsStore.get().pomodoro, {
     onTick: (state, remainingSec, totalSec) => {
@@ -133,6 +133,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push({ dispose: () => pomodoroTimer.dispose() });
 
   function dispatchUiMessage(message: UiToExtMessage): void {
+    // UI からの操作を、再生・設定更新・ポモドーロ操作に振り分けます。
     switch (message.type) {
       case 'ui:ready':
       case 'ui:requestState':
@@ -218,7 +219,7 @@ export function activate(context: vscode.ExtensionContext): void {
         pomodoroTimer.skipPhase();
         break;
       default:
-        logger.info(`UI message not wired up yet (later milestone): ${message.type}`);
+        logger.info(`UI メッセージはまだ未接続です（後続実装予定）: ${message.type}`);
         break;
     }
   }

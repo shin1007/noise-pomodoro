@@ -1,5 +1,5 @@
-// Messages exchanged over AudioWorkletNode.port between engineClient.ts (webview) and the
-// worklet processors. Separate from protocol.ts, which covers the extension<->webview boundary.
+// engineClient.ts（webview）と worklet プロセッサ間でやり取りするメッセージです。
+// extension <-> webview の境界を定義する protocol.ts とは別に管理します。
 
 export type NoiseType = 'white' | 'pink' | 'brown';
 export type ToneType = 'isochronic' | 'binaural' | 'solfeggio';

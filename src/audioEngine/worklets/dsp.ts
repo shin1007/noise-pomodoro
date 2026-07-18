@@ -1,8 +1,10 @@
-// Shared DSP helpers for noiseProcessor.ts. Kept as small stateful classes so each output
-// channel can own an independent instance (correlated stereo noise sounds noticeably worse).
+// noiseProcessor.ts で使う共通 DSP ヘルパーです。小さな状態付きクラスにしておくことで、
+// 各出力チャンネルが独立したインスタンスを持てます（L/R が相関したステレオノイズは聴感上よくありません）。
 
-/** Paul Kellet's refined pink noise filter -- a practical, well-documented approximation of
- * true 1/f (Voss-McCartney octave-band) pink noise, cheap enough to run per-sample. */
+/**
+ * Paul Kellet の改良版ピンクノイズフィルタです。真の 1/f（Voss-McCartney のオクターブ帯域）
+ * ピンクノイズを実用的に近似しており、サンプル単位でも十分軽量です。
+ */
 export class PinkNoiseGenerator {
   private b0 = 0;
   private b1 = 0;
@@ -22,12 +24,14 @@ export class PinkNoiseGenerator {
     this.b5 = -0.7616 * this.b5 - white * 0.016898;
     const out = this.b0 + this.b1 + this.b2 + this.b3 + this.b4 + this.b5 + this.b6 + white * 0.5362;
     this.b6 = white * 0.115926;
-    return out * 0.11; // empirical normalization, keeps output roughly within [-1, 1]
+    return out * 0.11; // 経験的な正規化で、出力をおおむね [-1, 1] に収めます。
   }
 }
 
-/** Leaky-integrated random walk (brown/red noise). The leak factor prevents unbounded DC
- * drift that a pure random walk would otherwise accumulate. */
+/**
+ * 漏れ付き積分のランダムウォーク（ブラウン / レッドノイズ）です。
+ * 漏れ係数で、単純なランダムウォークが抱える無制限な DC ドリフトを抑えます。
+ */
 export class BrownNoiseGenerator {
   private lastOut = 0;
 
@@ -35,7 +39,7 @@ export class BrownNoiseGenerator {
     const white = Math.random() * 2 - 1;
     const out = (this.lastOut + 0.02 * white) / 1.02;
     this.lastOut = out;
-    return out * 3.5; // empirical gain compensation for brown noise's low-frequency-heavy energy
+    return out * 3.5; // ブラウンノイズの低域寄りなエネルギーを補う経験的ゲイン補正です。
   }
 }
 

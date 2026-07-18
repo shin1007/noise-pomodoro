@@ -1,12 +1,14 @@
 import type { NoiseType, WorkletInMessage } from './messages';
 import { BrownNoiseGenerator, PinkNoiseGenerator } from './dsp';
 
-/** One node, three noise types switchable at runtime via port messages -- avoids re-instantiating
- * the AudioWorkletNode (and losing filter/integrator state) whenever the user changes preset. */
+/**
+ * 1 つのノードで 3 種類のノイズを port メッセージ経由で切り替えます。
+ * プリセット変更のたびに AudioWorkletNode を作り直すと、フィルタや積分状態が失われるためです。
+ */
 class NoiseProcessor extends AudioWorkletProcessor {
   private noiseType: NoiseType = 'white';
   private volume = 0.6;
-  // Independent generator per channel: correlated (identical) noise across L/R is audibly worse.
+  // チャンネルごとに独立した生成器を使います。L/R で相関した同一ノイズは聴感上よくありません。
   private readonly pinkGenerators: PinkNoiseGenerator[] = [];
   private readonly brownGenerators: BrownNoiseGenerator[] = [];
 

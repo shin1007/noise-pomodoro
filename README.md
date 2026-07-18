@@ -1,33 +1,49 @@
 # White Noise & Pomodoro
 
-Procedurally generated white/pink/brown noise, isochronic tones, binaural beats and solfeggio
-frequencies, plus local audio file playback and a JavaScript custom-code sound mode -- combined
-with a Pomodoro timer that switches sounds between focus and break phases.
+ホワイトノイズ、ピンクノイズ、ブラウンノイズ、アイソクロニックトーン、バイノーラルビート、ソルフェジオ周波数を生成し、ローカル音声ファイルの再生と JavaScript のカスタムコード再生にも対応した拡張機能です。ポモドーロタイマーも内蔵しており、集中時間と休憩時間で別々のサウンドを切り替えられます。
 
-## Features
+## 機能
 
-- **Procedural audio**: white/pink/brown noise, isochronic tones, binaural beats, solfeggio frequencies -- all generated on an AudioWorklet thread so UI interaction never causes glitches.
-- **File playback**: point at any local audio file.
-- **Custom code mode**: write a JavaScript formula (`t` = seconds, `params` = your own parameters, return a value between -1 and 1) and hear it live.
-- **Pomodoro timer**: independent focus/break durations, a sound preset per phase, auto-advance, and an end-of-phase action (toast notification, a one-shot chime, and/or a custom script).
-- **Status bar first**: click the status bar item to open the panel; close the panel and playback keeps running -- the status bar remains the control surface, Zen Mode included.
+- **生成音源**: ホワイトノイズ、ピンクノイズ、ブラウンノイズ、アイソクロニックトーン、バイノーラルビート、ソルフェジオ周波数を、AudioWorklet 上で生成します。UI 操作で音切れしにくい構成です。
+- **ファイル再生**: ローカルの音声ファイルを指定して再生できます。
+- **カスタムコード**: `t` を経過秒、`params` を任意パラメータとして扱う JavaScript 式を書き、-1 から 1 の範囲の波形をその場で鳴らせます。
+- **ポモドーロタイマー**: 集中時間と休憩時間を個別に設定でき、各フェーズにサウンドを割り当てられます。自動切り替え、終了時トースト、ワンショット通知音、カスタムスクリプトも使えます。
+- **ステータスバー中心**: ステータスバーからパネルを開けます。パネルを閉じても再生は継続し、Zen Mode 中でもステータスバーが操作の入口になります。
 
-## Usage
+## 使い方
 
-1. Click the status bar item (or run **White Noise: Open Panel**) to open the panel.
-2. Pick a sound preset to start playback.
-3. Configure focus/break durations and sounds in the Pomodoro section, then press Start.
+1. ステータスバーのアイコンをクリックするか、コマンドパレットで White Noise: Open Panel を実行してパネルを開きます。
+2. サウンドプリセットを選ぶと再生が始まります。
+3. ポモドーロ欄で集中時間・休憩時間・各フェーズのサウンドを設定し、Start を押します。
 
-## Settings
+## テスト方法
 
-- `whiteNoise.enablePhaseEndScripts` -- opt-in gate for phase-end custom scripts (off by default; these run with extension-host/Node access, so only enable it for scripts you wrote yourself).
-- `whiteNoise.statusBar.updateIntervalMs` -- Pomodoro status bar tick interval (default `1000`).
+拡張機能開発が初めてなら、次の順で確認すると分かりやすいです。
 
-## Development
+1. ターミナルで npm install を実行します。
+2. npm run watch を実行して、ソース変更が自動ビルドされる状態にします。
+3. VS Code で F5 を押し、Extension Development Host を起動します。
+4. 開いた別ウィンドウでコマンドパレットを開き、White Noise: Open Panel を実行します。
+5. 画面で次を順番に試します。
+	- プリセットを選んで音が鳴るか確認する。
+	- パネルを閉じても再生が続くか確認する。
+	- ステータスバーの表示が再生中のプリセット名に変わるか確認する。
+	- ポモドーロを Start / Pause / Reset / Skip で操作して、表示と状態が連動するか確認する。
+	- ファイル再生プリセットがある場合は、ローカル音声ファイルを選んで再生できるか確認する。
+	- カスタムコードモードがある場合は、簡単な式を入力して適用し、エラー時にメッセージが出るか確認する。
+6. ログを確認したい場合は、VS Code の出力パネルで White Noise & Pomodoro を開きます。
+7. 変更を入れたら F5 の開発ホストで動作確認を繰り返します。UI 変更ならパネルを再表示、実装変更なら watch の再ビルド後に再テストします。
 
-```
+## 設定
+
+- `whiteNoise.enablePhaseEndScripts`: フェーズ終了時のカスタムスクリプトを許可します。既定は `false` です。拡張機能ホストと Node の権限で実行されるため、自分で書いたスクリプトだけを使ってください。
+- `whiteNoise.statusBar.updateIntervalMs`: ポモドーロのステータスバー更新間隔です。既定は `1000` ミリ秒です。
+
+## 開発
+
+```bash
 npm install
-npm run watch   # esbuild in watch mode
+npm run watch
 ```
 
-Press F5 in VS Code to launch an Extension Development Host.
+VS Code で F5 を押すと、Extension Development Host を起動できます。

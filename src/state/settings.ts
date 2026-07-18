@@ -44,9 +44,9 @@ export const DEFAULT_PRESETS: PresetConfig[] = [
 
 export const SOLFEGGIO_FREQUENCIES = [174, 285, 396, 417, 528, 639, 741, 852, 963] as const;
 
-// 3 built-in one-shot end-of-phase chimes. Users can repoint PhaseEndAction.soundPresetId at
-// any other preset id instead (their own custom-code preset, or a file preset) -- these are
-// just sensible defaults, not the only option.
+// 終了時に鳴らす組み込みのワンショット音 3 種です。PhaseEndAction.soundPresetId は、
+// ユーザー自身のカスタムコードやファイルのプリセットなど、他の任意の preset id に
+// 差し替えられます。ここにあるのは「無難な初期値」であり、唯一の選択肢ではありません。
 export const BUILTIN_CHIME_PRESETS: PresetConfig[] = [
   {
     id: 'chime-bell',

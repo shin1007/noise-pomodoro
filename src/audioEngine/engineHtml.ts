@@ -7,10 +7,10 @@ export function buildEngineHtml(webview: vscode.Webview, extensionUri: vscode.Ur
   const workletUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'worklets', 'processors.js'));
   const csp = [
     `default-src 'none'`,
-    // 'unsafe-eval' is required only here (never in the UI panel's CSP): custom-code presets
-    // compile a user-authored formula via `new Function` inside the AudioWorkletGlobalScope,
-    // which inherits this document's CSP. That scope has no window/document/fetch/Node APIs of
-    // its own, so it's a meaningfully sandboxed place to allow eval.
+    // `unsafe-eval` が必要なのはここだけです。UI パネルの CSP には入れません。
+    // カスタムコードのプリセットは AudioWorkletGlobalScope 内で `new Function` により
+    // ユーザー定義の式をコンパイルしますが、そのスコープには window / document /
+    // fetch / Node API がないため、実用上の分離は維持できます。
     `script-src 'nonce-${nonce}' 'unsafe-eval'`,
     `worklet-src ${webview.cspSource} blob:`,
     `media-src ${webview.cspSource} blob:`,
@@ -24,7 +24,7 @@ export function buildEngineHtml(webview: vscode.Webview, extensionUri: vscode.Ur
   <title>White Noise Engine</title>
 </head>
 <body>
-  <p>White Noise audio engine — do not close this tab while sound is playing. Control playback from the status bar or the White Noise panel.</p>
+  <p>White Noise の音声エンジンです。再生中はこのタブを閉じないでください。操作はステータスバーか White Noise パネルから行えます。</p>
   <script nonce="${nonce}">window.__WORKLET_URI__ = ${JSON.stringify(workletUri.toString())};</script>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>

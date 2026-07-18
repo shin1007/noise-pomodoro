@@ -1,15 +1,17 @@
 import type { ToneType, WorkletInMessage } from './messages';
 
-const ENVELOPE_RAMP_SEC = 0.005; // 5ms smoothing on the isochronic gate to avoid clicks
+const ENVELOPE_RAMP_SEC = 0.005; // 5ms の平滑化で、アイソクロニックのゲートのクリック音を抑えます。
 const TWO_PI = Math.PI * 2;
 
-/** One node, three oscillator-based tone types switchable at runtime via port messages. */
+/**
+ * 1 つのノードで、3 種類のオシレーター系トーンを port メッセージ経由で切り替えます。
+ */
 class ToneProcessor extends AudioWorkletProcessor {
   private toneType: ToneType = 'solfeggio';
   private volume = 0.5;
-  private carrierFreq = 528; // also used as the solfeggio frequency
-  private beatFreq = 10; // binaural L/R difference, Hz
-  private pulseFreq = 10; // isochronic gate rate, Hz
+  private carrierFreq = 528; // ソルフェジオ周波数としても使います。
+  private beatFreq = 10; // バイノーラルの L/R 差分周波数 (Hz) です。
+  private pulseFreq = 10; // アイソクロニックのゲート周波数 (Hz) です。
 
   private phaseLeft = 0;
   private phaseRight = 0;

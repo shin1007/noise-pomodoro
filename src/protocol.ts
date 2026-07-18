@@ -1,5 +1,5 @@
-// Shared postMessage protocol between UIPanelWebview, extension.ts and AudioEngineWebview.
-// Pure types only -- safe to include under the Node, DOM and Worklet tsconfigs alike.
+// UIPanelWebview、extension.ts、AudioEngineWebview 間で共有する postMessage プロトコルです。
+// 型のみで構成しているため、Node / DOM / Worklet いずれの tsconfig にも安全に含められます。
 
 export type NoiseAlgorithm = 'white' | 'pink' | 'brown' | 'isochronic' | 'binaural' | 'solfeggio';
 
@@ -29,7 +29,7 @@ export interface PresetConfig {
 export interface PhaseEndAction {
   showToast: boolean;
   toastMessage?: string;
-  /** Plays a short one-shot sound via soundPresetId (built-in chime, or any user preset -- procedural/file/custom). */
+  /** soundPresetId 経由で短いワンショット音を鳴らします（組み込みチャイム、または任意のユーザープリセット）。 */
   playSound: boolean;
   soundPresetId?: string | null;
   runScript: boolean;
@@ -77,7 +77,7 @@ export interface PlaybackState {
   currentTimeSec: number;
 }
 
-// ---- UI -> extension ----
+// ---- UI から extension へ ----
 export type UiToExtMessage =
   | { type: 'ui:ready' }
   | { type: 'ui:requestState' }
@@ -96,7 +96,7 @@ export type UiToExtMessage =
   | { type: 'ui:pomodoroReset' }
   | { type: 'ui:pomodoroSkipPhase' };
 
-// ---- extension -> UI ----
+// ---- extension から UI へ ----
 export type ExtToUiMessage =
   | { type: 'ext:stateSync'; settings: WhiteNoiseSettings; pomodoro: PomodoroState; playback: PlaybackState }
   | { type: 'ext:playbackState'; playback: PlaybackState }
@@ -104,7 +104,7 @@ export type ExtToUiMessage =
   | { type: 'ext:fileSelected'; presetId: string; fileName: string; fsPath: string }
   | { type: 'ext:error'; message: string; code?: string };
 
-// ---- extension -> engine ----
+// ---- extension から engine へ ----
 export type ResolvedEnginePreset = PresetConfig & {
   fileBytes?: Uint8Array;
 };
@@ -119,7 +119,7 @@ export type ExtToEngineMessage =
   | { type: 'eng:setParam'; presetId: string; paramKey: string; value: number }
   | { type: 'eng:setCustomCode'; presetId: string; code: string; params: Record<string, number> };
 
-// ---- engine -> extension ----
+// ---- engine から extension へ ----
 export type EngineToExtMessage =
   | { type: 'eng:ready' }
   | { type: 'eng:playbackStarted'; presetId: string }

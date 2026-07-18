@@ -4,9 +4,9 @@ import { clamp } from './dsp';
 type CompiledFn = (t: number, params: Record<string, number>) => number;
 
 /**
- * Sandboxed by scope, not by policy: `new Function` here runs inside the AudioWorkletGlobalScope,
- * which has no window/document/fetch/filesystem/Node APIs -- it cannot reach outside this worklet
- * regardless of what the user's formula does. See engineHtml.ts for the corresponding CSP note.
+ * ポリシーではなくスコープで隔離しています。ここでの `new Function` は AudioWorkletGlobalScope
+ * 内で動き、window / document / fetch / filesystem / Node API に到達できません。
+ * ユーザーの式が何をしても、この worklet の外側には出られません。対応する CSP の説明は engineHtml.ts を参照してください。
  */
 class CustomCodeProcessor extends AudioWorkletProcessor {
   private volume = 0.6;
@@ -28,7 +28,7 @@ class CustomCodeProcessor extends AudioWorkletProcessor {
         this.params = message.params;
         this.hasReportedError = false;
         try {
-          // eslint-disable-next-line no-new-func -- intentional: this is the custom-code feature.
+          // eslint-disable-next-line no-new-func -- カスタムコード機能として意図的に使用しています。
           this.compiled = new Function('t', 'params', message.code) as CompiledFn;
         } catch (err) {
           this.compiled = undefined;
@@ -41,8 +41,8 @@ class CustomCodeProcessor extends AudioWorkletProcessor {
   }
 
   private reportError(message: string): void {
-    // Only the first error per code version is reported -- otherwise a formula that throws every
-    // sample would flood the port with tens of thousands of identical messages per second.
+    // 1 つのコード版につき最初のエラーだけを報告します。毎サンプルで例外が出る式だと、
+    // 1 秒あたり数万件の同一メッセージでポートが埋まってしまうためです。
     if (this.hasReportedError) {
       return;
     }
