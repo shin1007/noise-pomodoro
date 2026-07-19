@@ -1,14 +1,18 @@
 import * as vscode from 'vscode';
 import { StatusBar } from './statusBar';
-import { UIPanelWebview } from './ui/UIPanelWebview';
-import { AudioEngineWebview } from './audioEngine/AudioEngineWebview';
+import { AppWebview, type AppWebviewCallbacks } from './ui/AppWebview';
 import { SettingsStore } from './state/SettingsStore';
 import { readAudioFile, selectAudioFile } from './fileAccess/audioFileLoader';
 import { PomodoroTimer } from './pomodoro/PomodoroTimer';
 import { formatMMSS, formatProgressBar } from './pomodoro/format';
 import { runPhaseEndScript } from './scriptRunner/PhaseEndScriptRunner';
-import type { PhaseConfig, PlaybackState, PresetConfig, ResolvedEnginePreset, UiToExtMessage } from './protocol';
+import { DEFAULT_AMBIENT_PRESETS } from './state/settings';
+import type { BackgroundConfig, PhaseConfig, PlaybackState, ResolvedBackgroundConfig, ResolvedLiveMix, UiToExtMessage } from './protocol';
 import { logger } from './utils/logger';
+
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   const statusBar = new StatusBar();
@@ -16,78 +20,160 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const settingsStore = new SettingsStore(context);
 
-  let playback: PlaybackState = { status: 'stopped', presetId: null, currentTimeSec: 0 };
+  let playback: PlaybackState = {
+    status: 'stopped',
+    backgroundActive: false,
+    beatActive: false,
+    beatMode: settingsStore.get().lastUsed.beatMode,
+    activePresetId: null,
+    currentTimeSec: 0,
+  };
 
-  function findPreset(presetId: string): PresetConfig | undefined {
-    return settingsStore.get().presets.find((p) => p.id === presetId);
+  // ファイル背景音の再デコード・再送信を避けるための、直近送信済み fsPath のメモです。
+  // バイト列自体は保持しません（音声ファイルは最大 50MB 想定のため、拡張機能ホスト側に
+  // 二重に保持しないようにしています）。パネルが閉じられたら onPanelClosed でリセットします。
+  let lastSentFsPath: string | undefined;
+
+  function findAmbientPreset(presetId: string) {
+    return settingsStore.get().ambientPresets.find((p) => p.id === presetId);
   }
 
-  async function resolvePreset(preset: PresetConfig): Promise<ResolvedEnginePreset> {
-    if (preset.mode === 'file' && preset.file) {
-      const bytes = await readAudioFile(preset.file.fsPath);
-      return { ...preset, fileBytes: bytes };
+  function findChimePreset(presetId: string) {
+    return settingsStore.get().chimePresets.find((p) => p.id === presetId);
+  }
+
+  async function resolveBackground(background: BackgroundConfig): Promise<ResolvedBackgroundConfig> {
+    if (background.mode !== 'file' || !background.file) {
+      return background;
     }
-    return preset;
+    if (background.file.fsPath === lastSentFsPath) {
+      return background;
+    }
+    const bytes = await readAudioFile(background.file.fsPath);
+    lastSentFsPath = background.file.fsPath;
+    return { ...background, fileBytes: bytes };
+  }
+
+  async function buildResolvedMix(): Promise<ResolvedLiveMix> {
+    const { lastUsed } = settingsStore.get();
+    const background = await resolveBackground(lastUsed.background);
+    return { background, beat: lastUsed.beat, beatMode: lastUsed.beatMode, volume: lastUsed.masterVolume };
+  }
+
+  function backgroundLabel(background: BackgroundConfig): string {
+    switch (background.mode) {
+      case 'procedural':
+        return background.noiseType ?? '';
+      case 'file':
+        return 'ファイル';
+      case 'custom':
+        return 'カスタム';
+      case 'off':
+        return '';
+    }
+  }
+
+  function fallbackPlayingLabel(): string {
+    const { lastUsed } = settingsStore.get();
+    const bgLabel = backgroundLabel(lastUsed.background);
+    const beatLabel = lastUsed.beat.enabled ? (lastUsed.beatMode === 'binaural' ? 'バイノーラル' : 'アイソクロニック') : '';
+    return [bgLabel, beatLabel].filter(Boolean).join(' + ') || 'White Noise';
   }
 
   function refreshIdleStatusBar(): void {
-    if (playback.status === 'playing' && playback.presetId) {
-      const preset = findPreset(playback.presetId);
-      statusBar.renderPreset(preset?.icon, preset?.name ?? playback.presetId);
+    if (playback.status === 'playing') {
+      const preset = playback.activePresetId ? findAmbientPreset(playback.activePresetId) : undefined;
+      statusBar.renderPreset(preset?.icon, preset?.name ?? fallbackPlayingLabel());
     } else {
-      statusBar.renderIdle();
+      statusBar.renderIdle(AppWebview.hasEverPlayed());
     }
   }
 
   function updatePlayback(next: PlaybackState): void {
     playback = next;
-    UIPanelWebview.postMessage({ type: 'ext:playbackState', playback });
+    AppWebview.postMessage({ type: 'ext:playbackState', playback });
     if (pomodoroTimer.getState().phase === 'idle') {
       refreshIdleStatusBar();
     }
   }
 
-  function getEngine(): AudioEngineWebview {
-    return AudioEngineWebview.getOrCreate(context, {
-      onPlaybackStarted: (presetId) => updatePlayback({ status: 'playing', presetId, currentTimeSec: 0 }),
-      onPlaybackError: (presetId, message) => {
-        logger.error(`Playback error for ${presetId}: ${message}`);
-        void vscode.window.showErrorMessage(`White Noise: ${message}`);
-        updatePlayback({ status: 'stopped', presetId: null, currentTimeSec: 0 });
-      },
-      onPlaybackEnded: () => {
-        updatePlayback({ status: 'stopped', presetId: null, currentTimeSec: 0 });
-      },
-      onEngineClosed: () => {
-        if (playback.status !== 'stopped') {
-          void vscode.window.showWarningMessage('White Noise: the audio engine tab was closed, so playback stopped.');
-        }
-        updatePlayback({ status: 'stopped', presetId: null, currentTimeSec: 0 });
-      },
-    });
+  function stoppedPlaybackState(): PlaybackState {
+    return { status: 'stopped', backgroundActive: false, beatActive: false, beatMode: playback.beatMode, activePresetId: null, currentTimeSec: 0 };
   }
 
-  async function playPresetId(presetId: string): Promise<void> {
-    const preset = findPreset(presetId);
-    if (!preset) {
-      UIPanelWebview.postMessage({ type: 'ext:error', message: `Unknown preset: ${presetId}` });
-      return;
+  function panelCallbacks(): AppWebviewCallbacks {
+    return {
+      dispatch: dispatchUiMessage,
+      onPlaybackStarted: () => {
+        const { lastUsed } = settingsStore.get();
+        updatePlayback({
+          status: 'playing',
+          backgroundActive: lastUsed.background.mode !== 'off',
+          beatActive: lastUsed.beat.enabled,
+          beatMode: lastUsed.beatMode,
+          activePresetId: lastUsed.activePresetId,
+          currentTimeSec: 0,
+        });
+      },
+      onPlaybackError: (layer, message) => {
+        logger.error(`Playback error (${layer}): ${message}`);
+        void vscode.window.showErrorMessage(`White Noise: ${message}`);
+        if (layer === 'background') {
+          updatePlayback({ ...playback, backgroundActive: false, status: playback.beatActive ? 'playing' : 'stopped' });
+        } else {
+          updatePlayback({ ...playback, beatActive: false, status: playback.backgroundActive ? 'playing' : 'stopped' });
+        }
+      },
+      onBackgroundEnded: () => {
+        updatePlayback({ ...playback, backgroundActive: false, status: playback.beatActive ? 'playing' : 'stopped' });
+      },
+      onPanelClosed: () => {
+        if (playback.status !== 'stopped') {
+          void vscode.window.showWarningMessage('White Noise: パネルを閉じたため、再生を停止しました。');
+        }
+        lastSentFsPath = undefined;
+        updatePlayback(stoppedPlaybackState());
+      },
+    };
+  }
+
+  function getPanel(): AppWebview {
+    return AppWebview.ensure(context, panelCallbacks());
+  }
+
+  async function pushLiveMixIfPlaying(): Promise<void> {
+    if (playback.status === 'playing') {
+      getPanel().play(await buildResolvedMix());
     }
-    if (preset.mode === 'file' && !preset.file) {
-      UIPanelWebview.postMessage({ type: 'ext:error', message: 'ファイルが選択されていません。先にファイルを選択してください。' });
-      return;
-    }
+  }
+
+  async function playCurrentMix(): Promise<void> {
     try {
-      const resolved = await resolvePreset(preset);
-      getEngine().play(resolved);
-      settingsStore.get().lastUsed.manualPresetId = presetId;
-      void settingsStore.persist();
+      getPanel().play(await buildResolvedMix());
     } catch (err) {
-      const errMessage = `プリセットを再生できません: ${preset.name} (${(err as Error).message})`;
+      const errMessage = `再生できません: ${(err as Error).message}`;
       logger.error(errMessage);
       void vscode.window.showErrorMessage(`White Noise: ${errMessage}`);
-      UIPanelWebview.postMessage({ type: 'ext:error', message: errMessage });
+      AppWebview.postMessage({ type: 'ext:error', message: errMessage });
     }
+  }
+
+  async function applyPresetId(presetId: string): Promise<void> {
+    const preset = findAmbientPreset(presetId);
+    if (!preset) {
+      AppWebview.postMessage({ type: 'ext:error', message: `Unknown preset: ${presetId}` });
+      return;
+    }
+    const settings = settingsStore.get();
+    settings.lastUsed = {
+      background: preset.background,
+      beat: { ...preset.beat },
+      beatMode: settings.lastUsed.beatMode,
+      masterVolume: preset.volume,
+      activePresetId: preset.id,
+    };
+    void settingsStore.persist();
+    await playCurrentMix();
   }
 
   // --- ポモドーロ関連 ---
@@ -99,16 +185,16 @@ export function activate(context: vscode.ExtensionContext): void {
       } else {
         statusBar.renderPomodoro(formatProgressBar(remainingSec, totalSec), formatMMSS(remainingSec), state.phase, state.runState === 'paused');
       }
-      if (UIPanelWebview.isVisible()) {
-        UIPanelWebview.postMessage({ type: 'ext:pomodoroTick', pomodoro: state, remainingSec, totalSec });
+      if (AppWebview.isVisible()) {
+        AppWebview.postMessage({ type: 'ext:pomodoroTick', pomodoro: state, remainingSec, totalSec });
       }
     },
     onPhaseChange: (_phase, config: PhaseConfig) => {
       if (config.presetId) {
-        void playPresetId(config.presetId);
-      } else if (AudioEngineWebview.hasInstance()) {
-        getEngine().stop();
-        updatePlayback({ status: 'stopped', presetId: null, currentTimeSec: 0 });
+        void applyPresetId(config.presetId);
+      } else if (AppWebview.hasInstance()) {
+        getPanel().stop();
+        updatePlayback(stoppedPlaybackState());
       }
     },
     onPhaseEnd: (phase, config: PhaseConfig) => {
@@ -118,11 +204,13 @@ export function activate(context: vscode.ExtensionContext): void {
         void vscode.window.showInformationMessage(`White Noise: ${endAction.toastMessage ?? defaultMsg}`);
       }
       if (endAction.playSound && endAction.soundPresetId) {
-        const soundPreset = findPreset(endAction.soundPresetId);
+        const soundPreset = findChimePreset(endAction.soundPresetId);
         if (soundPreset) {
-          void resolvePreset(soundPreset)
-            .then((resolved) => getEngine().playOneShot(resolved))
-            .catch((err) => logger.error(`Failed to play end-of-phase sound: ${(err as Error).message}`));
+          const resolved =
+            soundPreset.mode === 'file' && soundPreset.file
+              ? readAudioFile(soundPreset.file.fsPath).then((bytes) => ({ ...soundPreset, fileBytes: bytes }))
+              : Promise.resolve(soundPreset);
+          void resolved.then((r) => getPanel().playOneShot(r)).catch((err) => logger.error(`Failed to play end-of-phase sound: ${(err as Error).message}`));
         }
       }
       if (endAction.runScript && endAction.scriptSource) {
@@ -132,70 +220,108 @@ export function activate(context: vscode.ExtensionContext): void {
   }, tickIntervalMs);
   context.subscriptions.push({ dispose: () => pomodoroTimer.dispose() });
 
+  function broadcastStateSync(): void {
+    AppWebview.postMessage({ type: 'ext:stateSync', settings: settingsStore.get(), pomodoro: pomodoroTimer.getState(), playback });
+  }
+
   function dispatchUiMessage(message: UiToExtMessage): void {
     // UI からの操作を、再生・設定更新・ポモドーロ操作に振り分けます。
     switch (message.type) {
       case 'ui:ready':
       case 'ui:requestState':
-        UIPanelWebview.postMessage({
-          type: 'ext:stateSync',
-          settings: settingsStore.get(),
-          pomodoro: pomodoroTimer.getState(),
-          playback,
-        });
+        broadcastStateSync();
         break;
-      case 'ui:playPreset':
-        void playPresetId(message.presetId);
+      case 'ui:applyPreset':
+        void applyPresetId(message.presetId);
         break;
+      case 'ui:play':
+        void playCurrentMix();
+        break;
+      case 'ui:stop':
+        if (AppWebview.hasInstance()) {
+          getPanel().stop();
+        }
+        updatePlayback(stoppedPlaybackState());
+        break;
+      case 'ui:setBackground': {
+        const settings = settingsStore.get();
+        settings.lastUsed.background = message.background;
+        settings.lastUsed.activePresetId = null;
+        void settingsStore.persist();
+        void pushLiveMixIfPlaying();
+        break;
+      }
+      case 'ui:setBeat': {
+        const settings = settingsStore.get();
+        settings.lastUsed.beat = message.beat;
+        settings.lastUsed.activePresetId = null;
+        void settingsStore.persist();
+        void pushLiveMixIfPlaying();
+        break;
+      }
+      case 'ui:setBeatMode': {
+        const settings = settingsStore.get();
+        settings.lastUsed.beatMode = message.mode;
+        settings.lastUsed.activePresetId = null;
+        void settingsStore.persist();
+        void pushLiveMixIfPlaying();
+        break;
+      }
+      case 'ui:setMasterVolume': {
+        const settings = settingsStore.get();
+        settings.lastUsed.masterVolume = message.value;
+        void settingsStore.persist();
+        void pushLiveMixIfPlaying();
+        break;
+      }
       case 'ui:selectAudioFile': {
         void (async () => {
-          const preset = findPreset(message.presetId);
-          if (!preset) {
-            return;
-          }
           const selected = await selectAudioFile();
           if (!selected) {
             return;
           }
-          preset.mode = 'file';
-          preset.file = { fsPath: selected.fsPath, mimeType: selected.mimeType, loop: true };
+          const settings = settingsStore.get();
+          settings.lastUsed.background = { mode: 'file', file: { fsPath: selected.fsPath, mimeType: selected.mimeType, loop: true } };
+          settings.lastUsed.activePresetId = null;
           void settingsStore.persist();
-          UIPanelWebview.postMessage({ type: 'ext:fileSelected', presetId: preset.id, fileName: selected.fileName, fsPath: selected.fsPath });
+          AppWebview.postMessage({ type: 'ext:fileSelected', fileName: selected.fileName, fsPath: selected.fsPath });
         })();
         break;
       }
-      case 'ui:stop':
-        if (AudioEngineWebview.hasInstance()) {
-          getEngine().stop();
-        }
-        updatePlayback({ status: 'stopped', presetId: null, currentTimeSec: 0 });
-        break;
       case 'ui:setCustomCode': {
-        const preset = findPreset(message.presetId);
-        if (!preset || preset.mode !== 'custom') {
+        const settings = settingsStore.get();
+        if (settings.lastUsed.background.mode !== 'custom') {
           return;
         }
-        preset.custom = { code: message.code, params: preset.custom?.params ?? {} };
+        settings.lastUsed.background.custom = { code: message.code, params: message.params };
         void settingsStore.persist();
-        if (playback.presetId === message.presetId && playback.status === 'playing' && AudioEngineWebview.hasInstance()) {
-          getEngine().setCustomCode(message.presetId, preset.custom.code, preset.custom.params);
-        }
+        void pushLiveMixIfPlaying();
         break;
       }
-      case 'ui:setParam': {
-        const preset = findPreset(message.presetId);
-        if (!preset) {
-          return;
-        }
-        if (message.paramKey === 'volume') {
-          preset.volume = message.value;
-        } else if (preset.procedural) {
-          preset.procedural.params[message.paramKey] = message.value;
+      case 'ui:savePreset': {
+        const settings = settingsStore.get();
+        const index = settings.ambientPresets.findIndex((p) => p.id === message.preset.id);
+        if (index >= 0) {
+          settings.ambientPresets[index] = message.preset;
+        } else {
+          settings.ambientPresets.push(message.preset);
         }
         void settingsStore.persist();
-        if (AudioEngineWebview.hasInstance()) {
-          getEngine().setParam(message.presetId, message.paramKey, message.value);
-        }
+        broadcastStateSync();
+        break;
+      }
+      case 'ui:deletePreset': {
+        const settings = settingsStore.get();
+        settings.ambientPresets = settings.ambientPresets.filter((p) => p.id !== message.presetId);
+        void settingsStore.persist();
+        broadcastStateSync();
+        break;
+      }
+      case 'ui:resetPresets': {
+        const settings = settingsStore.get();
+        settings.ambientPresets = clone(DEFAULT_AMBIENT_PRESETS);
+        void settingsStore.persist();
+        broadcastStateSync();
         break;
       }
       case 'ui:updatePomodoroConfig': {
@@ -203,7 +329,7 @@ export function activate(context: vscode.ExtensionContext): void {
         settings.pomodoro = message.pomodoro;
         void settingsStore.persist();
         pomodoroTimer.updateConfig(message.pomodoro);
-        UIPanelWebview.postMessage({ type: 'ext:stateSync', settings, pomodoro: pomodoroTimer.getState(), playback });
+        broadcastStateSync();
         break;
       }
       case 'ui:pomodoroStart':
@@ -219,21 +345,35 @@ export function activate(context: vscode.ExtensionContext): void {
         pomodoroTimer.skipPhase();
         break;
       default:
-        logger.info(`UI メッセージはまだ未接続です（後続実装予定）: ${message.type}`);
+        logger.info(`UI メッセージはまだ未接続です（後続実装予定）: ${(message as { type: string }).type}`);
         break;
     }
   }
 
   context.subscriptions.push(
     vscode.commands.registerCommand('whiteNoise.openPanel', () => {
-      UIPanelWebview.createOrShow(context, dispatchUiMessage);
+      AppWebview.show(context, panelCallbacks());
     }),
-    vscode.commands.registerCommand('whiteNoise.play', () => {
-      const presetId = settingsStore.get().lastUsed.manualPresetId ?? settingsStore.get().presets[0]?.id;
-      if (presetId) {
-        void playPresetId(presetId);
+    // ステータスバーのクリック用。ポモドーロ実行中はパネルを開き、それ以外は
+    // 再生中なら停止、停止中はこの Webview で一度でも再生成功していれば
+    // パネルを開かず直接トグル再生します（自動再生ポリシーの都合上、
+    // 一度もクリックされていない Webview では resume() が完了しないため）。
+    vscode.commands.registerCommand('whiteNoise.statusBar.action', () => {
+      if (pomodoroTimer.getState().phase !== 'idle') {
+        AppWebview.show(context, panelCallbacks());
+        return;
       }
+      if (playback.status === 'playing') {
+        dispatchUiMessage({ type: 'ui:stop' });
+        return;
+      }
+      if (AppWebview.hasEverPlayed()) {
+        dispatchUiMessage({ type: 'ui:play' });
+        return;
+      }
+      AppWebview.show(context, panelCallbacks());
     }),
+    vscode.commands.registerCommand('whiteNoise.play', () => dispatchUiMessage({ type: 'ui:play' })),
     vscode.commands.registerCommand('whiteNoise.stop', () => dispatchUiMessage({ type: 'ui:stop' })),
     vscode.commands.registerCommand('whiteNoise.pomodoro.start', () => pomodoroTimer.start()),
     vscode.commands.registerCommand('whiteNoise.pomodoro.pause', () => pomodoroTimer.pause()),
@@ -245,7 +385,6 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {
-  AudioEngineWebview.disposeInstance();
-  UIPanelWebview.disposeInstance();
+  AppWebview.disposeInstance();
   logger.dispose();
 }

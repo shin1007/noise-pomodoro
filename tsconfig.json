@@ -18,6 +18,7 @@
   ],
   "exclude": [
     "src/media/**/*",
-    "src/audioEngine/worklets/**/*"
+    "src/audioEngine/worklets/**/*",
+    "src/test/**/*"
   ]
 }

@@ -6,7 +6,7 @@ type CompiledFn = (t: number, params: Record<string, number>) => number;
 /**
  * ポリシーではなくスコープで隔離しています。ここでの `new Function` は AudioWorkletGlobalScope
  * 内で動き、window / document / fetch / filesystem / Node API に到達できません。
- * ユーザーの式が何をしても、この worklet の外側には出られません。対応する CSP の説明は engineHtml.ts を参照してください。
+ * ユーザーの式が何をしても、この worklet の外側には出られません。対応する CSP の説明は appHtml.ts を参照してください。
  */
 class CustomCodeProcessor extends AudioWorkletProcessor {
   private volume = 0.6;

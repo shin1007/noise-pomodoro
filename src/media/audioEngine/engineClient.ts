@@ -1,5 +1,5 @@
-import type { EngineToExtMessage, ExtToEngineMessage } from '../../protocol';
-import type { NoiseType, ToneType, WorkletInMessage, WorkletOutMessage } from '../../audioEngine/worklets/messages';
+import type { BeatMode, EngineToExtMessage, ExtToEngineMessage, ResolvedLiveMix } from '../../protocol';
+import type { WorkletInMessage, WorkletOutMessage } from '../../audioEngine/worklets/messages';
 
 declare function acquireVsCodeApi(): {
   postMessage(message: EngineToExtMessage): void;
@@ -11,58 +11,93 @@ declare global {
   }
 }
 
-const NOISE_TYPES: readonly string[] = ['white', 'pink', 'brown'];
-const TONE_TYPES: readonly string[] = ['isochronic', 'binaural', 'solfeggio'];
+// UI (main.ts) と同じ Webview に同居しているため、acquireVsCodeApi() は
+// ドキュメント全体で一度しか呼べません。どちらが先に読み込まれても安全なように、
+// window 上にキャッシュしたインスタンスを共有します。
+function getVsCodeApi(): ReturnType<typeof acquireVsCodeApi> {
+  const w = window as unknown as { __vscodeApi__?: ReturnType<typeof acquireVsCodeApi> };
+  return (w.__vscodeApi__ ??= acquireVsCodeApi());
+}
 
-const vscode = acquireVsCodeApi();
+const vscode = getVsCodeApi();
 
 function post(message: EngineToExtMessage): void {
   vscode.postMessage(message);
 }
 
+// バックグラウンドとビートの、それぞれのゲインの目標値です。両方が有効なときは
+// バックグラウンドを主、ビートを従にした固定比率でミックスします（参考にした
+// noise_generator プロジェクトの noiseLevel/toneLevel 比率に合わせています）。
+const BACKGROUND_GAIN_WITH_BEAT = 0.86;
+const BACKGROUND_GAIN_ALONE = 1.0;
+const BEAT_GAIN = 0.12;
+const GAIN_SMOOTHING_SEC = 0.05;
+
 let audioContext: AudioContext | undefined;
 let masterGain: GainNode | undefined;
+let backgroundGain: GainNode | undefined;
+let beatGain: GainNode | undefined;
 
-// worklet ベースの再生（ノイズ / トーン / カスタムコードのプリセット）
-let activeNode: AudioWorkletNode | undefined;
-let activeNodeKind: 'noise' | 'tone' | 'custom' | undefined;
-
-// ファイル再生（AudioBufferSourceNode を使用し、worklet は使わない）
+// 背景音レイヤー（ノイズ / ファイル / カスタムコード。排他的に 1 つだけ有効）
+type BackgroundKind = 'off' | 'noise' | 'file' | 'custom';
+let backgroundNode: AudioWorkletNode | undefined;
+let backgroundKind: BackgroundKind = 'off';
 let fileSource: AudioBufferSourceNode | undefined;
 let fileGain: GainNode | undefined;
+let currentFileFsPath: string | undefined;
 
-let currentPresetId: string | null = null;
+// ビートレイヤー（バイノーラル / アイソクロニック。背景音とは独立して有効・無効を切り替えます）
+let beatNode: AudioWorkletNode | undefined;
 
+/**
+ * AudioContext の生成と AudioWorklet の読み込みだけを行います。resume() は呼びません。
+ * ブラウザの自動再生ポリシーでは、ユーザー操作を伴わずに呼んだ resume() は永久に
+ * 解決しない Promise を返すため、ページ読み込み直後の事前初期化ではここまでに留めます。
+ */
 async function ensureAudioContext(): Promise<AudioContext> {
   if (audioContext) {
-    if (audioContext.state === 'suspended') {
-      await audioContext.resume();
-    }
     return audioContext;
   }
   audioContext = new AudioContext();
   await audioContext.audioWorklet.addModule(window.__WORKLET_URI__);
   masterGain = audioContext.createGain();
-  masterGain.gain.value = 1;
+  masterGain.gain.value = 0;
   masterGain.connect(audioContext.destination);
-  if (audioContext.state === 'suspended') {
-    await audioContext.resume();
-  }
+  backgroundGain = audioContext.createGain();
+  backgroundGain.gain.value = 0;
+  backgroundGain.connect(masterGain);
+  beatGain = audioContext.createGain();
+  beatGain.gain.value = 0;
+  beatGain.connect(masterGain);
   return audioContext;
 }
 
-function postToWorklet(message: WorkletInMessage): void {
-  activeNode?.port.postMessage(message);
+/**
+ * 実際に再生を始める直前に呼びます。eng:play などのメッセージはユーザーのクリックに
+ * 起因して届くため、この時点での resume() はユーザー操作の文脈内とみなされます。
+ */
+async function ensureRunningAudioContext(): Promise<AudioContext> {
+  const ctx = await ensureAudioContext();
+  if (ctx.state === 'suspended') {
+    await ctx.resume();
+  }
+  return ctx;
 }
 
-function stopActive(): void {
-  if (activeNode) {
-    activeNode.port.onmessage = null;
-    activeNode.disconnect();
-  }
-  activeNode = undefined;
-  activeNodeKind = undefined;
+function attachErrorReporting(node: AudioWorkletNode, layer: 'background' | 'beat'): void {
+  node.port.onmessage = (event: MessageEvent<WorkletOutMessage>) => {
+    if (event.data.type === 'customCodeError') {
+      post({ type: 'eng:playbackError', layer, message: event.data.message });
+    }
+  };
+}
 
+function teardownBackground(): void {
+  if (backgroundNode) {
+    backgroundNode.port.onmessage = null;
+    backgroundNode.disconnect();
+    backgroundNode = undefined;
+  }
   if (fileSource) {
     fileSource.onended = null;
     try {
@@ -71,118 +106,162 @@ function stopActive(): void {
       // すでに停止済み / 終了済みの場合は無視します。
     }
     fileSource.disconnect();
+    fileSource = undefined;
   }
-  fileSource = undefined;
   fileGain?.disconnect();
   fileGain = undefined;
+  currentFileFsPath = undefined;
+  backgroundKind = 'off';
 }
 
-const PROCESSOR_NAME_BY_KIND: Record<'noise' | 'tone' | 'custom', string> = {
-  noise: 'noise-processor',
-  tone: 'tone-processor',
-  custom: 'custom-code-processor',
-};
-
-async function ensureNodeForKind(kind: 'noise' | 'tone' | 'custom'): Promise<AudioWorkletNode> {
-  const ctx = await ensureAudioContext();
-  if (activeNode && activeNodeKind === kind) {
-    return activeNode;
-  }
-  activeNode?.disconnect();
-  activeNode = new AudioWorkletNode(ctx, PROCESSOR_NAME_BY_KIND[kind], { outputChannelCount: [2] });
-  activeNode.connect(masterGain!);
-  activeNode.port.onmessage = (event: MessageEvent<WorkletOutMessage>) => handleWorkletOutMessage(event.data);
-  activeNodeKind = kind;
-  return activeNode;
-}
-
-function handleWorkletOutMessage(message: WorkletOutMessage): void {
-  if (message.type === 'customCodeError' && currentPresetId) {
-    post({ type: 'eng:playbackError', presetId: currentPresetId, message: message.message });
+function teardownBeat(): void {
+  if (beatNode) {
+    beatNode.port.onmessage = null;
+    beatNode.disconnect();
+    beatNode = undefined;
   }
 }
 
-async function handleProceduralPlay(preset: Extract<ExtToEngineMessage, { type: 'eng:play' }>['preset']): Promise<void> {
-  const { algorithm, params } = preset.procedural!;
-  const kind = NOISE_TYPES.includes(algorithm) ? 'noise' : TONE_TYPES.includes(algorithm) ? 'tone' : undefined;
-  if (!kind) {
-    post({ type: 'eng:playbackError', presetId: preset.id, message: `Unknown algorithm "${algorithm}".` });
-    return;
-  }
+async function applyBackground(mix: ResolvedLiveMix): Promise<void> {
+  const { background } = mix;
+  const targetKind: BackgroundKind =
+    background.mode === 'procedural' ? 'noise' : background.mode === 'file' ? 'file' : background.mode === 'custom' ? 'custom' : 'off';
 
-  await ensureNodeForKind(kind);
-
-  if (kind === 'noise') {
-    postToWorklet({ type: 'setNoiseType', value: algorithm as NoiseType });
-  } else {
-    postToWorklet({ type: 'setToneType', value: algorithm as ToneType });
-    for (const [key, value] of Object.entries(params ?? {})) {
-      postToWorklet({ type: 'setParam', key, value });
+  if (targetKind === 'file') {
+    // ファイルパスが変わっていなければ何もしません（再デコード・再生成による
+    // 途切れを避けるため）。extension.ts 側は変化がない限り fileBytes を省略します。
+    if (backgroundKind === 'file' && background.file?.fsPath === currentFileFsPath) {
+      return;
     }
-  }
-  postToWorklet({ type: 'setVolume', value: preset.volume });
-
-  currentPresetId = preset.id;
-  post({ type: 'eng:playbackStarted', presetId: preset.id });
-}
-
-async function handleCustomPlay(preset: Extract<ExtToEngineMessage, { type: 'eng:play' }>['preset']): Promise<void> {
-  if (!preset.custom) {
-    post({ type: 'eng:playbackError', presetId: preset.id, message: 'No custom code provided.' });
-    return;
-  }
-  await ensureNodeForKind('custom');
-  postToWorklet({ type: 'setCustomCode', code: preset.custom.code, params: preset.custom.params });
-  postToWorklet({ type: 'setVolume', value: preset.volume });
-
-  currentPresetId = preset.id;
-  post({ type: 'eng:playbackStarted', presetId: preset.id });
-}
-
-async function handleFilePlay(preset: Extract<ExtToEngineMessage, { type: 'eng:play' }>['preset']): Promise<void> {
-  if (!preset.fileBytes) {
-    post({ type: 'eng:playbackError', presetId: preset.id, message: 'No audio file data received.' });
-    return;
-  }
-  const ctx = await ensureAudioContext();
-  let audioBuffer: AudioBuffer;
-  try {
-    const bytes = preset.fileBytes;
+    if (!background.fileBytes) {
+      throw new Error('No audio file data received.');
+    }
+    const ctx = audioContext!;
+    const bytes = background.fileBytes;
     const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    audioBuffer = await ctx.decodeAudioData(arrayBuffer as ArrayBuffer);
-  } catch (err) {
-    post({ type: 'eng:playbackError', presetId: preset.id, message: `Failed to decode audio file: ${(err as Error).message}` });
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer as ArrayBuffer);
+
+    teardownBackground();
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.loop = background.file?.loop ?? true;
+    fileGain = ctx.createGain();
+    fileGain.gain.value = 1;
+    source.connect(fileGain);
+    fileGain.connect(backgroundGain!);
+    source.onended = () => {
+      if (fileSource === source) {
+        fileSource = undefined;
+        backgroundKind = 'off';
+        post({ type: 'eng:backgroundEnded' });
+      }
+    };
+    source.start(0);
+    fileSource = source;
+    currentFileFsPath = background.file?.fsPath;
+    backgroundKind = 'file';
     return;
   }
 
-  const source = ctx.createBufferSource();
-  source.buffer = audioBuffer;
-  source.loop = preset.file?.loop ?? true;
-  fileGain = ctx.createGain();
-  fileGain.gain.value = preset.volume;
-  source.connect(fileGain);
-  fileGain.connect(masterGain!);
-  source.onended = () => {
-    if (fileSource === source) {
-      fileSource = undefined;
-      post({ type: 'eng:playbackEnded', presetId: preset.id });
+  if (backgroundKind !== targetKind) {
+    teardownBackground();
+    if (targetKind === 'noise') {
+      backgroundNode = new AudioWorkletNode(audioContext!, 'noise-processor', { outputChannelCount: [2] });
+      backgroundNode.connect(backgroundGain!);
+      postToNode(backgroundNode, { type: 'setVolume', value: 1 });
+    } else if (targetKind === 'custom') {
+      backgroundNode = new AudioWorkletNode(audioContext!, 'custom-code-processor', { outputChannelCount: [2] });
+      backgroundNode.connect(backgroundGain!);
+      attachErrorReporting(backgroundNode, 'background');
+      postToNode(backgroundNode, { type: 'setVolume', value: 1 });
     }
-  };
-  source.start(0);
-  fileSource = source;
+    backgroundKind = targetKind;
+  }
 
-  currentPresetId = preset.id;
-  post({ type: 'eng:playbackStarted', presetId: preset.id });
+  if (targetKind === 'noise' && background.noiseType) {
+    postToNode(backgroundNode, { type: 'setNoiseType', value: background.noiseType });
+  } else if (targetKind === 'custom' && background.custom) {
+    postToNode(backgroundNode, { type: 'setCustomCode', code: background.custom.code, params: background.custom.params });
+  }
+}
+
+function beatParamKey(mode: BeatMode): 'beatFreq' | 'pulseFreq' {
+  return mode === 'binaural' ? 'beatFreq' : 'pulseFreq';
+}
+
+function applyBeat(mix: ResolvedLiveMix): void {
+  const { beat, beatMode } = mix;
+  if (!beat.enabled) {
+    teardownBeat();
+    return;
+  }
+
+  if (!beatNode) {
+    beatNode = new AudioWorkletNode(audioContext!, 'tone-processor', { outputChannelCount: [2] });
+    beatNode.connect(beatGain!);
+    postToNode(beatNode, { type: 'setVolume', value: 1 });
+  }
+
+  postToNode(beatNode, { type: 'setToneType', value: beatMode });
+  postToNode(beatNode, { type: 'setParam', key: 'carrierFreq', value: beat.baseFrequency });
+  postToNode(beatNode, { type: 'setParam', key: beatParamKey(beatMode), value: beat.beatFrequency });
+}
+
+function postToNode(node: AudioWorkletNode | undefined, message: WorkletInMessage): void {
+  node?.port.postMessage(message);
+}
+
+async function applyMix(mix: ResolvedLiveMix): Promise<void> {
+  const ctx = await ensureRunningAudioContext();
+
+  try {
+    await applyBackground(mix);
+  } catch (err) {
+    post({ type: 'eng:playbackError', layer: 'background', message: (err as Error).message });
+  }
+
+  try {
+    applyBeat(mix);
+  } catch (err) {
+    post({ type: 'eng:playbackError', layer: 'beat', message: (err as Error).message });
+  }
+
+  const backgroundLevel = mix.beat.enabled ? BACKGROUND_GAIN_WITH_BEAT : BACKGROUND_GAIN_ALONE;
+  const beatLevel = mix.beat.enabled ? BEAT_GAIN : 0;
+  backgroundGain!.gain.setTargetAtTime(backgroundLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
+  beatGain!.gain.setTargetAtTime(beatLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
+  masterGain!.gain.setTargetAtTime(mix.volume, ctx.currentTime, GAIN_SMOOTHING_SEC);
+
+  post({ type: 'eng:playbackStarted' });
+}
+
+async function handleStop(): Promise<void> {
+  if (audioContext && masterGain) {
+    masterGain.gain.setTargetAtTime(0, audioContext.currentTime, GAIN_SMOOTHING_SEC);
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  teardownBackground();
+  teardownBeat();
+}
+
+function handlePause(): void {
+  masterGain?.disconnect();
+}
+
+function handleResume(): void {
+  if (masterGain && audioContext) {
+    masterGain.connect(audioContext.destination);
+  }
 }
 
 const ONE_SHOT_MAX_MS = 3000;
 
 /**
- * フェーズ終了時の短い通知音を、背景再生とは別ノードで鳴らします。
- * activeNode / fileSource の再生を止めずに重ねられるようにしています。
+ * フェーズ終了時の短い通知音を、背景音・ビートの再生とは別ノードで鳴らします。
+ * それらの再生を止めずに重ねられるよう、masterGain へ直接つなぎます。
  */
-async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'eng:play' }>['preset']): Promise<void> {
-  const ctx = await ensureAudioContext();
+async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'eng:playOneShot' }>['preset']): Promise<void> {
+  const ctx = await ensureRunningAudioContext();
 
   if (preset.mode === 'file' && preset.fileBytes) {
     try {
@@ -202,7 +281,7 @@ async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'en
       };
       source.start(0);
     } catch (err) {
-      post({ type: 'eng:playbackError', presetId: preset.id, message: `Failed to play end sound: ${(err as Error).message}` });
+      post({ type: 'eng:playbackError', layer: 'background', message: `Failed to play end sound: ${(err as Error).message}` });
     }
     return;
   }
@@ -217,86 +296,11 @@ async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'en
   }
 
   if (preset.mode === 'procedural' && preset.procedural) {
-    const { algorithm, params } = preset.procedural;
-    const processorName = NOISE_TYPES.includes(algorithm) ? 'noise-processor' : 'tone-processor';
-    const node = new AudioWorkletNode(ctx, processorName, { outputChannelCount: [2] });
+    const node = new AudioWorkletNode(ctx, 'noise-processor', { outputChannelCount: [2] });
     node.connect(masterGain!);
-    if (processorName === 'noise-processor') {
-      node.port.postMessage({ type: 'setNoiseType', value: algorithm as NoiseType } satisfies WorkletInMessage);
-    } else {
-      node.port.postMessage({ type: 'setToneType', value: algorithm as ToneType } satisfies WorkletInMessage);
-      for (const [key, value] of Object.entries(params ?? {})) {
-        node.port.postMessage({ type: 'setParam', key, value } satisfies WorkletInMessage);
-      }
-    }
+    node.port.postMessage({ type: 'setNoiseType', value: preset.procedural.algorithm } satisfies WorkletInMessage);
     node.port.postMessage({ type: 'setVolume', value: preset.volume } satisfies WorkletInMessage);
     setTimeout(() => node.disconnect(), ONE_SHOT_MAX_MS);
-  }
-}
-
-async function handlePlay(message: Extract<ExtToEngineMessage, { type: 'eng:play' }>): Promise<void> {
-  const { preset } = message;
-  stopActive();
-
-  if (preset.mode === 'file') {
-    await handleFilePlay(preset);
-    return;
-  }
-  if (preset.mode === 'custom') {
-    await handleCustomPlay(preset);
-    return;
-  }
-  if (preset.mode === 'procedural' && preset.procedural) {
-    await handleProceduralPlay(preset);
-    return;
-  }
-  post({ type: 'eng:playbackError', presetId: preset.id, message: `Preset mode "${preset.mode}" is not supported yet.` });
-}
-
-function handleStop(): void {
-  stopActive();
-  currentPresetId = null;
-}
-
-function handlePause(): void {
-  activeNode?.disconnect();
-  fileGain?.disconnect();
-}
-
-function handleResume(): void {
-  if (activeNode && masterGain) {
-    activeNode.connect(masterGain);
-  }
-  if (fileGain && masterGain) {
-    fileGain.connect(masterGain);
-  }
-}
-
-function handleSetVolume(volume: number): void {
-  if (masterGain) {
-    masterGain.gain.value = volume;
-  }
-}
-
-function handleSetCustomCode(presetId: string, code: string, params: Record<string, number>): void {
-  if (presetId !== currentPresetId || activeNodeKind !== 'custom') {
-    return;
-  }
-  postToWorklet({ type: 'setCustomCode', code, params });
-}
-
-function handleSetParam(presetId: string, paramKey: string, value: number): void {
-  if (presetId !== currentPresetId) {
-    return;
-  }
-  if (paramKey === 'volume') {
-    if (fileGain) {
-      fileGain.gain.value = value;
-    } else {
-      postToWorklet({ type: 'setVolume', value });
-    }
-  } else {
-    postToWorklet({ type: 'setParam', key: paramKey, value });
   }
 }
 
@@ -304,28 +308,19 @@ window.addEventListener('message', (event: MessageEvent<ExtToEngineMessage>) => 
   const message = event.data;
   switch (message.type) {
     case 'eng:play':
-      void handlePlay(message);
+      void applyMix(message.mix);
       break;
     case 'eng:playOneShot':
       void handlePlayOneShot(message.preset);
       break;
     case 'eng:stop':
-      handleStop();
+      void handleStop();
       break;
     case 'eng:pause':
       handlePause();
       break;
     case 'eng:resume':
       handleResume();
-      break;
-    case 'eng:setVolume':
-      handleSetVolume(message.volume);
-      break;
-    case 'eng:setParam':
-      handleSetParam(message.presetId, message.paramKey, message.value);
-      break;
-    case 'eng:setCustomCode':
-      handleSetCustomCode(message.presetId, message.code, message.params);
       break;
     default:
       break;

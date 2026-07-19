@@ -11,7 +11,7 @@ export interface PomodoroCallbacks {
 /**
  * 拡張機能全体で 1 つだけの 1Hz タイマーを管理します。webview ではなく extension host
  * 上で動くため、UI パネルのタブがバックグラウンドでも間引かれません。statusBar.ts と、
- * 表示中の UIPanelWebview は同じ onTick コールバックを使います。詳細は extension.ts を参照してください。
+ * 表示中の AppWebview は同じ onTick コールバックを使います。詳細は extension.ts を参照してください。
  */
 export class PomodoroTimer {
   private state: PomodoroState = {

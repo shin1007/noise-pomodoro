@@ -1,5 +1,5 @@
 import type { NoiseType, WorkletInMessage } from './messages';
-import { BrownNoiseGenerator, PinkNoiseGenerator } from './dsp';
+import { BlueNoiseGenerator, BrownNoiseGenerator, PinkNoiseGenerator, VioletNoiseGenerator } from './dsp';
 
 /**
  * 1 つのノードで 3 種類のノイズを port メッセージ経由で切り替えます。
@@ -11,6 +11,8 @@ class NoiseProcessor extends AudioWorkletProcessor {
   // チャンネルごとに独立した生成器を使います。L/R で相関した同一ノイズは聴感上よくありません。
   private readonly pinkGenerators: PinkNoiseGenerator[] = [];
   private readonly brownGenerators: BrownNoiseGenerator[] = [];
+  private readonly blueGenerators: BlueNoiseGenerator[] = [];
+  private readonly violetGenerators: VioletNoiseGenerator[] = [];
 
   constructor() {
     super();
@@ -38,6 +40,14 @@ class NoiseProcessor extends AudioWorkletProcessor {
     return (this.brownGenerators[channel] ??= new BrownNoiseGenerator());
   }
 
+  private blueGenFor(channel: number): BlueNoiseGenerator {
+    return (this.blueGenerators[channel] ??= new BlueNoiseGenerator());
+  }
+
+  private violetGenFor(channel: number): VioletNoiseGenerator {
+    return (this.violetGenerators[channel] ??= new VioletNoiseGenerator());
+  }
+
   process(_inputs: Float32Array[][], outputs: Float32Array[][]): boolean {
     const output = outputs[0];
     for (let channel = 0; channel < output.length; channel++) {
@@ -57,6 +67,20 @@ class NoiseProcessor extends AudioWorkletProcessor {
         }
         case 'brown': {
           const gen = this.brownGenFor(channel);
+          for (let i = 0; i < data.length; i++) {
+            data[i] = gen.next() * this.volume;
+          }
+          break;
+        }
+        case 'blue': {
+          const gen = this.blueGenFor(channel);
+          for (let i = 0; i < data.length; i++) {
+            data[i] = gen.next() * this.volume;
+          }
+          break;
+        }
+        case 'violet': {
+          const gen = this.violetGenFor(channel);
           for (let i = 0; i < data.length; i++) {
             data[i] = gen.next() * this.volume;
           }

@@ -1,10 +1,48 @@
-// UIPanelWebview、extension.ts、AudioEngineWebview 間で共有する postMessage プロトコルです。
+// AppWebview（UI + 音声エンジン）と extension.ts の間で共有する postMessage プロトコルです。
 // 型のみで構成しているため、Node / DOM / Worklet いずれの tsconfig にも安全に含められます。
 
-export type NoiseAlgorithm = 'white' | 'pink' | 'brown' | 'isochronic' | 'binaural' | 'solfeggio';
+export type NoiseType = 'white' | 'pink' | 'brown' | 'blue' | 'violet';
+export type BeatMode = 'binaural' | 'isochronic';
+export type BackgroundMode = 'off' | 'procedural' | 'file' | 'custom';
+
+export interface BackgroundConfig {
+  mode: BackgroundMode;
+  /** mode === 'procedural' のときのノイズ種類です。 */
+  noiseType?: NoiseType;
+  /** mode === 'file' のときの音声ファイルです。 */
+  file?: { fsPath: string; mimeType: string; loop: boolean };
+  /** mode === 'custom' のときのカスタムコードです。 */
+  custom?: { code: string; params: Record<string, number> };
+}
+
+/**
+ * バイノーラルビート / アイソクロニックトーンのレイヤーです。背景音（BackgroundConfig）とは
+ * 独立して有効・無効を切り替えられ、両方が有効なら同時にミックスされて再生されます。
+ * ビートモード（binaural / isochronic）自体はレイヤー間で共有するグローバルな切り替えのため、
+ * ここには含みません（lastUsed.beatMode を参照）。
+ */
+export interface BeatConfig {
+  enabled: boolean;
+  /** ベース（キャリア）周波数 (Hz)。UI 側でソルフェジオ周波数にスナップされます。 */
+  baseFrequency: number;
+  /** 差分 / パルス周波数 (Hz, 0-40)。UI 側でデルタ〜ガンマの帯域に分類されます。 */
+  beatFrequency: number;
+}
+
+/** 背景音とビートの組み合わせをまとめて保存・呼び出しできるプリセットです。 */
+export interface AmbientPreset {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  background: BackgroundConfig;
+  beat: BeatConfig;
+  volume: number;
+}
 
 export type PresetMode = 'procedural' | 'file' | 'custom';
 
+/** フェーズ終了時などに鳴らす、短いワンショット音の設定です（アンビエントレイヤーとは独立）。 */
 export interface PresetConfig {
   id: string;
   name: string;
@@ -12,7 +50,7 @@ export interface PresetConfig {
   mode: PresetMode;
   volume: number;
   procedural?: {
-    algorithm: NoiseAlgorithm;
+    algorithm: NoiseType;
     params: Record<string, number>;
   };
   file?: {
@@ -61,11 +99,16 @@ export interface PomodoroState {
 
 export interface WhiteNoiseSettings {
   schemaVersion: number;
-  presets: PresetConfig[];
+  ambientPresets: AmbientPreset[];
+  chimePresets: PresetConfig[];
   pomodoro: PomodoroConfig;
   lastUsed: {
-    manualPresetId: string | null;
+    background: BackgroundConfig;
+    beat: BeatConfig;
+    beatMode: BeatMode;
     masterVolume: number;
+    /** ユーザーが手動でコントロールを操作すると null になります。 */
+    activePresetId: string | null;
   };
 }
 
@@ -73,7 +116,12 @@ export type PlaybackStatus = 'stopped' | 'playing' | 'paused';
 
 export interface PlaybackState {
   status: PlaybackStatus;
-  presetId: string | null;
+  /** 背景音レイヤーが再生中かどうか。ビートレイヤーとは独立しています。 */
+  backgroundActive: boolean;
+  /** ビートレイヤーが再生中かどうか。背景音レイヤーとは独立しています。 */
+  beatActive: boolean;
+  beatMode: BeatMode;
+  activePresetId: string | null;
   currentTimeSec: number;
 }
 
@@ -81,15 +129,20 @@ export interface PlaybackState {
 export type UiToExtMessage =
   | { type: 'ui:ready' }
   | { type: 'ui:requestState' }
-  | { type: 'ui:playPreset'; presetId: string }
+  | { type: 'ui:applyPreset'; presetId: string }
+  | { type: 'ui:play' }
   | { type: 'ui:stop' }
   | { type: 'ui:pause' }
   | { type: 'ui:resume' }
-  | { type: 'ui:setParam'; presetId: string; paramKey: string; value: number }
-  | { type: 'ui:savePreset'; preset: PresetConfig }
+  | { type: 'ui:setBackground'; background: BackgroundConfig }
+  | { type: 'ui:setBeat'; beat: BeatConfig }
+  | { type: 'ui:setBeatMode'; mode: BeatMode }
+  | { type: 'ui:setMasterVolume'; value: number }
+  | { type: 'ui:selectAudioFile' }
+  | { type: 'ui:setCustomCode'; code: string; params: Record<string, number> }
+  | { type: 'ui:savePreset'; preset: AmbientPreset }
   | { type: 'ui:deletePreset'; presetId: string }
-  | { type: 'ui:selectAudioFile'; presetId: string }
-  | { type: 'ui:setCustomCode'; presetId: string; code: string }
+  | { type: 'ui:resetPresets' }
   | { type: 'ui:updatePomodoroConfig'; pomodoro: PomodoroConfig }
   | { type: 'ui:pomodoroStart' }
   | { type: 'ui:pomodoroPause' }
@@ -101,27 +154,29 @@ export type ExtToUiMessage =
   | { type: 'ext:stateSync'; settings: WhiteNoiseSettings; pomodoro: PomodoroState; playback: PlaybackState }
   | { type: 'ext:playbackState'; playback: PlaybackState }
   | { type: 'ext:pomodoroTick'; pomodoro: PomodoroState; remainingSec: number; totalSec: number }
-  | { type: 'ext:fileSelected'; presetId: string; fileName: string; fsPath: string }
+  | { type: 'ext:fileSelected'; fileName: string; fsPath: string }
   | { type: 'ext:error'; message: string; code?: string };
 
 // ---- extension から engine へ ----
-export type ResolvedEnginePreset = PresetConfig & {
-  fileBytes?: Uint8Array;
-};
+export type ResolvedBackgroundConfig = BackgroundConfig & { fileBytes?: Uint8Array };
+export interface ResolvedLiveMix {
+  background: ResolvedBackgroundConfig;
+  beat: BeatConfig;
+  beatMode: BeatMode;
+  volume: number;
+}
+export type ResolvedEnginePreset = PresetConfig & { fileBytes?: Uint8Array };
 
 export type ExtToEngineMessage =
-  | { type: 'eng:play'; preset: ResolvedEnginePreset }
+  | { type: 'eng:play'; mix: ResolvedLiveMix }
   | { type: 'eng:playOneShot'; preset: ResolvedEnginePreset }
   | { type: 'eng:stop' }
   | { type: 'eng:pause' }
-  | { type: 'eng:resume' }
-  | { type: 'eng:setVolume'; volume: number }
-  | { type: 'eng:setParam'; presetId: string; paramKey: string; value: number }
-  | { type: 'eng:setCustomCode'; presetId: string; code: string; params: Record<string, number> };
+  | { type: 'eng:resume' };
 
 // ---- engine から extension へ ----
 export type EngineToExtMessage =
   | { type: 'eng:ready' }
-  | { type: 'eng:playbackStarted'; presetId: string }
-  | { type: 'eng:playbackError'; presetId: string; message: string }
-  | { type: 'eng:playbackEnded'; presetId: string };
+  | { type: 'eng:playbackStarted' }
+  | { type: 'eng:playbackError'; layer: 'background' | 'beat'; message: string }
+  | { type: 'eng:backgroundEnded' };

@@ -12,6 +12,9 @@
   "engines": {
     "vscode": "^1.90.0"
   },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "categories": [
     "Other"
   ],
@@ -77,13 +80,20 @@
     "watch": "node esbuild.js --watch",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.webview.json && tsc --noEmit -p tsconfig.worklet.json",
     "vscode:prepublish": "npm run build",
-    "package": "vsce package"
+    "package": "vsce package",
+    "compile-tests": "tsc -p tsconfig.test.json",
+    "test:unit": "npm run compile-tests && mocha \"out/test/unit/**/*.test.js\"",
+    "pretest": "npm run compile-tests && npm run build",
+    "test": "node ./scripts/run-integration-tests.js"
   },
   "devDependencies": {
+    "@types/mocha": "^10.0.7",
     "@types/node": "^20.14.0",
     "@types/vscode": "^1.90.0",
+    "@vscode/test-electron": "^2.4.1",
     "@vscode/vsce": "^2.29.0",
     "esbuild": "^0.21.5",
+    "mocha": "^10.7.3",
     "typescript": "^5.5.2"
   }
 }

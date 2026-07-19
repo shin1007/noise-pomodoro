@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Node10",
+    "outDir": "out",
+    "noEmit": false,
+    "types": ["node", "vscode", "mocha"]
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "src/media/**/*",
+    "src/audioEngine/worklets/**/*"
+  ]
+}

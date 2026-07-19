@@ -43,6 +43,38 @@ export class BrownNoiseGenerator {
   }
 }
 
+/**
+ * ホワイトノイズの一次差分（ハイパスに相当）です。低域が減衰し、高域寄りの
+ * 明るい質感になります。
+ */
+export class BlueNoiseGenerator {
+  private previousWhite = 0;
+
+  next(): number {
+    const white = Math.random() * 2 - 1;
+    const out = white - this.previousWhite;
+    this.previousWhite = white;
+    return out * 0.5;
+  }
+}
+
+/**
+ * ホワイトノイズの二次差分です。ブルーノイズよりさらに高域寄りで、
+ * 長時間の連続再生では耳が疲れやすい特性があります。
+ */
+export class VioletNoiseGenerator {
+  private previousWhite = 0;
+  private previousWhite2 = 0;
+
+  next(): number {
+    const white = Math.random() * 2 - 1;
+    const out = white - 2 * this.previousWhite + this.previousWhite2;
+    this.previousWhite2 = this.previousWhite;
+    this.previousWhite = white;
+    return out * 0.35;
+  }
+}
+
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

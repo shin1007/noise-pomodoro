@@ -1,8 +1,8 @@
 // engineClient.ts（webview）と worklet プロセッサ間でやり取りするメッセージです。
 // extension <-> webview の境界を定義する protocol.ts とは別に管理します。
 
-export type NoiseType = 'white' | 'pink' | 'brown';
-export type ToneType = 'isochronic' | 'binaural' | 'solfeggio';
+export type NoiseType = 'white' | 'pink' | 'brown' | 'blue' | 'violet';
+export type ToneType = 'isochronic' | 'binaural';
 
 export type WorkletInMessage =
   | { type: 'setNoiseType'; value: NoiseType }

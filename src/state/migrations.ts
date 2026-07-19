@@ -15,7 +15,15 @@ export function migrateSettings(raw: unknown): WhiteNoiseSettings {
     return clone(DEFAULT_SETTINGS);
   }
   const data = raw as Partial<WhiteNoiseSettings>;
-  if (data.schemaVersion !== SETTINGS_SCHEMA_VERSION || !Array.isArray(data.presets) || !data.pomodoro || !data.lastUsed) {
+  if (
+    data.schemaVersion !== SETTINGS_SCHEMA_VERSION ||
+    !Array.isArray(data.ambientPresets) ||
+    !Array.isArray(data.chimePresets) ||
+    !data.pomodoro ||
+    !data.lastUsed?.background ||
+    !data.lastUsed?.beat ||
+    !data.lastUsed?.beatMode
+  ) {
     return clone(DEFAULT_SETTINGS);
   }
   return data as WhiteNoiseSettings;

@@ -9,8 +9,20 @@ body {
   padding: 12px;
 }
 
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+}
+
 .loading {
   opacity: 0.7;
+}
+
+.master-volume {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
 }
 
 .preset-list {
@@ -66,4 +78,355 @@ body {
   border-radius: 4px;
   padding: 6px 8px;
   resize: vertical;
+}
+
+.section {
+  margin-bottom: 16px;
+}
+
+.section h3,
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  opacity: 0.85;
+}
+
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.app-title {
+  margin: 0;
+  font-size: 15px;
+  flex: 1;
+}
+
+.wave-symbol {
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.play-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  cursor: pointer;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.play-icon-button.is-playing {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label-text {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.timer-values {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.value-with-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.value-display {
+  min-width: 3.5em;
+  text-align: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-button {
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  border-radius: 4px;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.step-button:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.status-pill {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mode-toggle-group {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mode-button {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.mode-button.active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.noise-chip,
+.band-chip,
+.text-button {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  cursor: pointer;
+  font-size: 12px;
+  position: relative;
+}
+
+.noise-chip.selected,
+.band-chip.selected,
+.text-button.selected {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+/* ノイズ種類ごとの小さな色スウォッチです。VS Code テーマにこれらの色に対応する
+   セマンティック変数がないため、アクセントとして最小限の固定色を使っています。 */
+.noise-chip::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.noise-white::before {
+  background: #d8dee9;
+}
+
+.noise-pink::before {
+  background: #ff94c1;
+}
+
+.noise-brown::before {
+  background: #a97554;
+}
+
+.noise-blue::before {
+  background: #5da5ff;
+}
+
+.noise-violet::before {
+  background: #c683ff;
+}
+
+.noise-off::before {
+  background: #666;
+}
+
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.preset-card {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  background: var(--vscode-editorWidget-background, var(--vscode-button-secondaryBackground));
+  cursor: pointer;
+}
+
+.preset-card.active {
+  border-color: var(--vscode-focusBorder, var(--vscode-button-background));
+}
+
+.preset-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.preset-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.preset-setting-summary {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+.preset-description-readonly {
+  margin: 4px 0 0;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.preset-edit-button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+.preset-edit-button:hover {
+  opacity: 1;
+}
+
+.preset-reset-button {
+  border: none;
+  background: transparent;
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 10;
+}
+
+.modal-content {
+  max-width: 420px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background));
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.modal-header h2 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.close-modal {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preset-control-label {
+  font-size: 12px;
+  opacity: 0.85;
+  margin-bottom: -2px;
+}
+
+.noise-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.preset-name-input,
+.preset-description-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.preset-card-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.preset-apply-button {
+  padding: 6px 14px;
+  border-radius: 4px;
+  border: none;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  cursor: pointer;
+  font-size: 12px;
 }

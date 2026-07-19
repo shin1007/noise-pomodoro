@@ -4,12 +4,12 @@ const ENVELOPE_RAMP_SEC = 0.005; // 5ms の平滑化で、アイソクロニッ�
 const TWO_PI = Math.PI * 2;
 
 /**
- * 1 つのノードで、3 種類のオシレーター系トーンを port メッセージ経由で切り替えます。
+ * 1 つのノードで、バイノーラルビートとアイソクロニックトーンを port メッセージ経由で切り替えます。
  */
 class ToneProcessor extends AudioWorkletProcessor {
-  private toneType: ToneType = 'solfeggio';
+  private toneType: ToneType = 'binaural';
   private volume = 0.5;
-  private carrierFreq = 528; // ソルフェジオ周波数としても使います。
+  private carrierFreq = 528; // ベース周波数。UI側でソルフェジオ周波数にスナップされます。
   private beatFreq = 10; // バイノーラルの L/R 差分周波数 (Hz) です。
   private pulseFreq = 10; // アイソクロニックのゲート周波数 (Hz) です。
 
@@ -42,7 +42,6 @@ class ToneProcessor extends AudioWorkletProcessor {
   private setParam(key: string, value: number): void {
     switch (key) {
       case 'carrierFreq':
-      case 'solfeggioFreq':
         this.carrierFreq = value;
         break;
       case 'beatFreq':
@@ -78,11 +77,6 @@ class ToneProcessor extends AudioWorkletProcessor {
         this.envelope += (gateOn - this.envelope) * rampCoeff;
 
         const sample = carrier * this.envelope * this.volume;
-        left[i] = sample;
-        right[i] = sample;
-      } else {
-        this.phaseLeft = (this.phaseLeft + TWO_PI * this.carrierFreq * dt) % TWO_PI;
-        const sample = Math.sin(this.phaseLeft) * this.volume;
         left[i] = sample;
         right[i] = sample;
       }
