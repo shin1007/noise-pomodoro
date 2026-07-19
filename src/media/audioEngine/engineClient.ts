@@ -1,7 +1,7 @@
-import type { BeatMode, EngineToExtMessage, ExtToEngineMessage, ResolvedLiveMix } from '../../protocol';
+import type { EngineToExtMessage, ExtToEngineMessage, ResolvedLiveMix } from '../../protocol';
 import type { WorkletInMessage, WorkletOutMessage } from '../../audioEngine/worklets/messages';
 import { getVsCodeApi } from '../vscodeApi';
-import { clampFinite } from '../../utils/clamp';
+import { beatParamKey, mixLevels, safeFrequency, safeGain } from './mixParams';
 
 declare global {
   interface Window {
@@ -17,25 +17,7 @@ function post(message: EngineToExtMessage): void {
   vscode.postMessage(message);
 }
 
-// バックグラウンドとビートの、それぞれのゲインの目標値です。両方が有効なときは
-// バックグラウンドを主、ビートを従にした固定比率でミックスします（参考にした
-// noise_generator プロジェクトの noiseLevel/toneLevel 比率に合わせています）。
-const BACKGROUND_GAIN_WITH_BEAT = 0.86;
-const BACKGROUND_GAIN_ALONE = 1.0;
-const BEAT_GAIN = 0.12;
 const GAIN_SMOOTHING_SEC = 0.05;
-
-// スピーカーへ渡る直前の最後の防波堤です。破損した globalState や Settings Sync 経由で
-// 1.0 を超える音量や NaN / Infinity が届いても、突発的な大音量（難聴・機器破損）や
-// AudioParam の例外（setTargetAtTime は非有限値で throw する）を起こさないよう [0, 1] に収めます。
-// 非有限値は必ず 0（無音）へ倒します。
-function safeGain(value: number): number {
-  return clampFinite(value, 0, 1, 0);
-}
-
-function safeFrequency(value: number, fallback: number): number {
-  return clampFinite(value, 0, 20000, fallback);
-}
 
 let audioContext: AudioContext | undefined;
 let masterGain: GainNode | undefined;
@@ -201,10 +183,6 @@ async function applyBackground(mix: ResolvedLiveMix, epoch: number): Promise<voi
   }
 }
 
-function beatParamKey(mode: BeatMode): 'beatFreq' | 'pulseFreq' {
-  return mode === 'binaural' ? 'beatFreq' : 'pulseFreq';
-}
-
 function applyBeat(mix: ResolvedLiveMix): void {
   const { beat, beatMode } = mix;
   if (!beat.enabled) {
@@ -252,8 +230,7 @@ async function applyMix(mix: ResolvedLiveMix): Promise<void> {
     post({ type: 'eng:playbackError', layer: 'beat', message: (err as Error).message });
   }
 
-  const backgroundLevel = mix.beat.enabled ? BACKGROUND_GAIN_WITH_BEAT : BACKGROUND_GAIN_ALONE;
-  const beatLevel = mix.beat.enabled ? BEAT_GAIN : 0;
+  const { backgroundLevel, beatLevel } = mixLevels(mix.beat.enabled);
   backgroundGain!.gain.setTargetAtTime(backgroundLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
   beatGain!.gain.setTargetAtTime(beatLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
   masterGain!.gain.setTargetAtTime(safeGain(mix.volume), ctx.currentTime, GAIN_SMOOTHING_SEC);

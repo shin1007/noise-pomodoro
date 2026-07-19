@@ -7,6 +7,7 @@ import { PomodoroTimer } from './pomodoro/PomodoroTimer';
 import { formatMMSS, formatProgressBar } from './pomodoro/format';
 import { runPhaseEndScript } from './scriptRunner/PhaseEndScriptRunner';
 import { DEFAULT_AMBIENT_PRESETS } from './state/settings';
+import { backgroundLabel } from './state/labels';
 import type { BackgroundConfig, PhaseConfig, PlaybackState, ResolvedBackgroundConfig, ResolvedLiveMix, UiToExtMessage, WhiteNoiseSettings } from './protocol';
 import { logger } from './utils/logger';
 import { clone } from './utils/clone';
@@ -59,19 +60,6 @@ export function activate(context: vscode.ExtensionContext): void {
     const { lastUsed } = settingsStore.get();
     const background = await resolveBackground(lastUsed.background);
     return { background, beat: lastUsed.beat, beatMode: lastUsed.beatMode, volume: lastUsed.masterVolume };
-  }
-
-  function backgroundLabel(background: BackgroundConfig): string {
-    switch (background.mode) {
-      case 'procedural':
-        return background.noiseType ?? '';
-      case 'file':
-        return 'ファイル';
-      case 'custom':
-        return 'カスタム';
-      case 'off':
-        return '';
-    }
   }
 
   function fallbackPlayingLabel(): string {
