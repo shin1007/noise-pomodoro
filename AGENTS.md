@@ -48,10 +48,20 @@ AudioContext.resume() がユーザー操作の文脈を要求するブラウザ�
   新しいメッセージ種別を追加するときは、まずここに型を足してから各バンドルの switch に分岐を追加します。
 - [src/extension.ts](src/extension.ts) — activate() のオーケストレーション。再生状態・設定・ポモドーロを束ね、
   UI からの `UiToExtMessage` を捌く中枢。ここが肥大化したら機能ごとの分離を検討してください。
-- [src/media/ui/main.ts](src/media/ui/main.ts) — Webview UI 本体。フレームワークを使わず手続き的に DOM を
-  組み立てます。定型（ラベル行・ステッパー・チップボタン等）は [src/media/ui/dom.ts](src/media/ui/dom.ts)
-  のヘルパー（`el`/`button`/`stepper`/`labelRow`/`rangeSlider`）経由で生成してください。生 DOM API を
-  直接叩くコードを増やさないこと。
+- [src/media/ui/](src/media/ui/) — Webview UI。フレームワークを使わず手続き的に DOM を組み立てます。
+  - [main.ts](src/media/ui/main.ts) — 起動処理のみ（render() の定義・登録、extension からのメッセージ配線）。
+    セクションの描画ロジックはここに書かず views/ に置いてください。
+  - [state.ts](src/media/ui/state.ts) — 共有状態（settings/playback/pomodoroState/プリセット編集ドラフト等）
+    と、それを変更するアクション（setBackground/setBeat/openPresetEditor 等）。`export let` の状態を
+    外部から直接再代入すると TS がコンパイルエラーにするので、再代入が要る変更は必ずここに setter/action
+    として追加すること（views/*.ts からの直接代入は禁止）。render() の呼び出しは `requestRender()` 経由
+    （main.ts が `setRenderCallback()` で実体を注入しており、循環 import を避けるための設計です）。
+  - [constants.ts](src/media/ui/constants.ts) — ソルフェジオ周波数・脳波帯域・ノイズ種別など状態を持たない定数。
+  - [views/](src/media/ui/views/) — セクションごとの描画関数（header/controls/background/beat/presets/
+    presetEditor/pomodoro）。他の view から import してよいのは一方向のみ（例: presetEditor.ts → beat.ts の
+    `renderBaseFrequencyControl`）。view 間の循環 import は作らないこと。
+  - [dom.ts](src/media/ui/dom.ts) — DOM 生成の定型（ラベル行・ステッパー・チップボタン等）を
+    `el`/`button`/`stepper`/`labelRow`/`rangeSlider` に集約。生 DOM API を直接叩くコードを増やさないこと。
 - [src/media/audioEngine/engineClient.ts](src/media/audioEngine/engineClient.ts) — Web Audio グラフの構築・
   破棄。背景音レイヤー（ノイズ/ファイル/カスタムコード、排他）とビートレイヤー（バイノーラル/
   アイソクロニック）は独立して有効・無効を切り替え、同時再生時は固定比率でミックスします。
