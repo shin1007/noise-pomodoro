@@ -1,6 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
-import Mocha = require('mocha');
+import Mocha from 'mocha';
 
 /**
  * VS Code のテストホストが実行時に require するエントリポイントです（旧来の
