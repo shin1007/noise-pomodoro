@@ -7,7 +7,7 @@ import { PomodoroTimer } from './pomodoro/PomodoroTimer';
 import { formatMMSS, formatProgressBar } from './pomodoro/format';
 import { runPhaseEndScript } from './scriptRunner/PhaseEndScriptRunner';
 import { DEFAULT_AMBIENT_PRESETS } from './state/settings';
-import type { BackgroundConfig, PhaseConfig, PlaybackState, ResolvedBackgroundConfig, ResolvedLiveMix, UiToExtMessage } from './protocol';
+import type { BackgroundConfig, PhaseConfig, PlaybackState, ResolvedBackgroundConfig, ResolvedLiveMix, UiToExtMessage, WhiteNoiseSettings } from './protocol';
 import { logger } from './utils/logger';
 import { clone } from './utils/clone';
 
@@ -241,6 +241,20 @@ export function activate(context: vscode.ExtensionContext): void {
     AppWebview.postMessage({ type: 'ext:stateSync', settings: settingsStore.get(), pomodoro: pomodoroTimer.getState(), playback });
   }
 
+  /** lastUsed を変更し、永続化してから再生中なら即座に反映します（ui:setXxx 系の共通処理）。 */
+  function updateLiveConfig(mutate: (settings: WhiteNoiseSettings) => void): void {
+    mutate(settingsStore.get());
+    void settingsStore.persist();
+    void pushLiveMixIfPlaying();
+  }
+
+  /** 設定を変更し、永続化してから全 Webview に stateSync を配信します（プリセット管理系の共通処理）。 */
+  function updateSettings(mutate: (settings: WhiteNoiseSettings) => void): void {
+    mutate(settingsStore.get());
+    void settingsStore.persist();
+    broadcastStateSync();
+  }
+
   function dispatchUiMessage(message: UiToExtMessage): void {
     // UI からの操作を、再生・設定更新・ポモドーロ操作に振り分けます。
     switch (message.type) {
@@ -257,37 +271,29 @@ export function activate(context: vscode.ExtensionContext): void {
       case 'ui:stop':
         stopPlayback();
         break;
-      case 'ui:setBackground': {
-        const settings = settingsStore.get();
-        settings.lastUsed.background = message.background;
-        settings.lastUsed.activePresetId = null;
-        void settingsStore.persist();
-        void pushLiveMixIfPlaying();
+      case 'ui:setBackground':
+        updateLiveConfig((s) => {
+          s.lastUsed.background = message.background;
+          s.lastUsed.activePresetId = null;
+        });
         break;
-      }
-      case 'ui:setBeat': {
-        const settings = settingsStore.get();
-        settings.lastUsed.beat = message.beat;
-        settings.lastUsed.activePresetId = null;
-        void settingsStore.persist();
-        void pushLiveMixIfPlaying();
+      case 'ui:setBeat':
+        updateLiveConfig((s) => {
+          s.lastUsed.beat = message.beat;
+          s.lastUsed.activePresetId = null;
+        });
         break;
-      }
-      case 'ui:setBeatMode': {
-        const settings = settingsStore.get();
-        settings.lastUsed.beatMode = message.mode;
-        settings.lastUsed.activePresetId = null;
-        void settingsStore.persist();
-        void pushLiveMixIfPlaying();
+      case 'ui:setBeatMode':
+        updateLiveConfig((s) => {
+          s.lastUsed.beatMode = message.mode;
+          s.lastUsed.activePresetId = null;
+        });
         break;
-      }
-      case 'ui:setMasterVolume': {
-        const settings = settingsStore.get();
-        settings.lastUsed.masterVolume = message.value;
-        void settingsStore.persist();
-        void pushLiveMixIfPlaying();
+      case 'ui:setMasterVolume':
+        updateLiveConfig((s) => {
+          s.lastUsed.masterVolume = message.value;
+        });
         break;
-      }
       case 'ui:selectAudioFile': {
         void (async () => {
           const selected = await selectAudioFile();
@@ -303,41 +309,34 @@ export function activate(context: vscode.ExtensionContext): void {
         break;
       }
       case 'ui:setCustomCode': {
-        const settings = settingsStore.get();
-        if (settings.lastUsed.background.mode !== 'custom') {
+        if (settingsStore.get().lastUsed.background.mode !== 'custom') {
           return;
         }
-        settings.lastUsed.background.custom = { code: message.code, params: message.params };
-        void settingsStore.persist();
-        void pushLiveMixIfPlaying();
+        updateLiveConfig((s) => {
+          s.lastUsed.background.custom = { code: message.code, params: message.params };
+        });
         break;
       }
-      case 'ui:savePreset': {
-        const settings = settingsStore.get();
-        const index = settings.ambientPresets.findIndex((p) => p.id === message.preset.id);
-        if (index >= 0) {
-          settings.ambientPresets[index] = message.preset;
-        } else {
-          settings.ambientPresets.push(message.preset);
-        }
-        void settingsStore.persist();
-        broadcastStateSync();
+      case 'ui:savePreset':
+        updateSettings((s) => {
+          const index = s.ambientPresets.findIndex((p) => p.id === message.preset.id);
+          if (index >= 0) {
+            s.ambientPresets[index] = message.preset;
+          } else {
+            s.ambientPresets.push(message.preset);
+          }
+        });
         break;
-      }
-      case 'ui:deletePreset': {
-        const settings = settingsStore.get();
-        settings.ambientPresets = settings.ambientPresets.filter((p) => p.id !== message.presetId);
-        void settingsStore.persist();
-        broadcastStateSync();
+      case 'ui:deletePreset':
+        updateSettings((s) => {
+          s.ambientPresets = s.ambientPresets.filter((p) => p.id !== message.presetId);
+        });
         break;
-      }
-      case 'ui:resetPresets': {
-        const settings = settingsStore.get();
-        settings.ambientPresets = clone(DEFAULT_AMBIENT_PRESETS);
-        void settingsStore.persist();
-        broadcastStateSync();
+      case 'ui:resetPresets':
+        updateSettings((s) => {
+          s.ambientPresets = clone(DEFAULT_AMBIENT_PRESETS);
+        });
         break;
-      }
       case 'ui:updatePomodoroConfig': {
         const settings = settingsStore.get();
         settings.pomodoro = message.pomodoro;
