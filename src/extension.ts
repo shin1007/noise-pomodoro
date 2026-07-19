@@ -9,10 +9,7 @@ import { runPhaseEndScript } from './scriptRunner/PhaseEndScriptRunner';
 import { DEFAULT_AMBIENT_PRESETS } from './state/settings';
 import type { BackgroundConfig, PhaseConfig, PlaybackState, ResolvedBackgroundConfig, ResolvedLiveMix, UiToExtMessage } from './protocol';
 import { logger } from './utils/logger';
-
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(value)) as T;
-}
+import { clone } from './utils/clone';
 
 export function activate(context: vscode.ExtensionContext): void {
   const statusBar = new StatusBar();
@@ -44,6 +41,10 @@ export function activate(context: vscode.ExtensionContext): void {
 
   async function resolveBackground(background: BackgroundConfig): Promise<ResolvedBackgroundConfig> {
     if (background.mode !== 'file' || !background.file) {
+      // ファイル以外の背景に切り替えると engine 側はファイルノードを破棄します。
+      // dedup 用のメモを残したままだと、同じファイルへ戻したときにバイト列を送らず
+      // "No audio file data received." になるため、ここでリセットします。
+      lastSentFsPath = undefined;
       return background;
     }
     if (background.file.fsPath === lastSentFsPath) {
@@ -101,6 +102,19 @@ export function activate(context: vscode.ExtensionContext): void {
     return { status: 'stopped', backgroundActive: false, beatActive: false, beatMode: playback.beatMode, activePresetId: null, currentTimeSec: 0 };
   }
 
+  /**
+   * engine を停止し、停止状態を反映します。停止時に engine はファイルノードを破棄するため、
+   * dedup メモ（lastSentFsPath）もリセットしないと、同じファイルの再再生でバイト列が送られず
+   * "No audio file data received." になります。停止は必ずこの関数を通します。
+   */
+  function stopPlayback(): void {
+    if (AppWebview.hasInstance()) {
+      getPanel().stop();
+    }
+    lastSentFsPath = undefined;
+    updatePlayback(stoppedPlaybackState());
+  }
+
   function panelCallbacks(): AppWebviewCallbacks {
     return {
       dispatch: dispatchUiMessage,
@@ -119,12 +133,16 @@ export function activate(context: vscode.ExtensionContext): void {
         logger.error(`Playback error (${layer}): ${message}`);
         void vscode.window.showErrorMessage(`White Noise: ${message}`);
         if (layer === 'background') {
+          // 背景音レイヤーが失われたので、次回同じファイルでも必ずバイト列を送り直します。
+          lastSentFsPath = undefined;
           updatePlayback({ ...playback, backgroundActive: false, status: playback.beatActive ? 'playing' : 'stopped' });
         } else {
           updatePlayback({ ...playback, beatActive: false, status: playback.backgroundActive ? 'playing' : 'stopped' });
         }
       },
       onBackgroundEnded: () => {
+        // 自然終了で engine はファイルノードを破棄済みのため、dedup メモをリセットします。
+        lastSentFsPath = undefined;
         updatePlayback({ ...playback, backgroundActive: false, status: playback.beatActive ? 'playing' : 'stopped' });
       },
       onPanelClosed: () => {
@@ -193,8 +211,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (config.presetId) {
         void applyPresetId(config.presetId);
       } else if (AppWebview.hasInstance()) {
-        getPanel().stop();
-        updatePlayback(stoppedPlaybackState());
+        stopPlayback();
       }
     },
     onPhaseEnd: (phase, config: PhaseConfig) => {
@@ -238,10 +255,7 @@ export function activate(context: vscode.ExtensionContext): void {
         void playCurrentMix();
         break;
       case 'ui:stop':
-        if (AppWebview.hasInstance()) {
-          getPanel().stop();
-        }
-        updatePlayback(stoppedPlaybackState());
+        stopPlayback();
         break;
       case 'ui:setBackground': {
         const settings = settingsStore.get();

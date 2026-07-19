@@ -1,9 +1,7 @@
 import type { BeatMode, EngineToExtMessage, ExtToEngineMessage, ResolvedLiveMix } from '../../protocol';
 import type { WorkletInMessage, WorkletOutMessage } from '../../audioEngine/worklets/messages';
-
-declare function acquireVsCodeApi(): {
-  postMessage(message: EngineToExtMessage): void;
-};
+import { getVsCodeApi } from '../vscodeApi';
+import { clampFinite } from '../../utils/clamp';
 
 declare global {
   interface Window {
@@ -11,14 +9,8 @@ declare global {
   }
 }
 
-// UI (main.ts) と同じ Webview に同居しているため、acquireVsCodeApi() は
-// ドキュメント全体で一度しか呼べません。どちらが先に読み込まれても安全なように、
-// window 上にキャッシュしたインスタンスを共有します。
-function getVsCodeApi(): ReturnType<typeof acquireVsCodeApi> {
-  const w = window as unknown as { __vscodeApi__?: ReturnType<typeof acquireVsCodeApi> };
-  return (w.__vscodeApi__ ??= acquireVsCodeApi());
-}
-
+// UI (ui/main.ts) と同じ Webview ドキュメントに同居するための共有 vscode API 取得は
+// vscodeApi.ts に集約しています。ここでは EngineToExtMessage 専用の post に薄く包みます。
 const vscode = getVsCodeApi();
 
 function post(message: EngineToExtMessage): void {
@@ -32,6 +24,18 @@ const BACKGROUND_GAIN_WITH_BEAT = 0.86;
 const BACKGROUND_GAIN_ALONE = 1.0;
 const BEAT_GAIN = 0.12;
 const GAIN_SMOOTHING_SEC = 0.05;
+
+// スピーカーへ渡る直前の最後の防波堤です。破損した globalState や Settings Sync 経由で
+// 1.0 を超える音量や NaN / Infinity が届いても、突発的な大音量（難聴・機器破損）や
+// AudioParam の例外（setTargetAtTime は非有限値で throw する）を起こさないよう [0, 1] に収めます。
+// 非有限値は必ず 0（無音）へ倒します。
+function safeGain(value: number): number {
+  return clampFinite(value, 0, 1, 0);
+}
+
+function safeFrequency(value: number, fallback: number): number {
+  return clampFinite(value, 0, 20000, fallback);
+}
 
 let audioContext: AudioContext | undefined;
 let masterGain: GainNode | undefined;
@@ -48,6 +52,13 @@ let currentFileFsPath: string | undefined;
 
 // ビートレイヤー（バイノーラル / アイソクロニック。背景音とは独立して有効・無効を切り替えます）
 let beatNode: AudioWorkletNode | undefined;
+
+// applyMix / handleStop はどちらも decodeAudioData や resume() の await をまたぐため、
+// eng:play の連打や再生中の stop が重なると、古い非同期処理が後から完了してグラフを壊す
+// （ノードのリーク・二重再生・停止後に音が復活）恐れがあります。状態を変える操作ごとに
+// この世代番号を進め、await から戻った時点で最新でなければ処理を破棄することで、
+// 常に「最後の操作」だけがオーディオグラフに反映されるようにします。
+let mixEpoch = 0;
 
 /**
  * AudioContext の生成と AudioWorklet の読み込みだけを行います。resume() は呼びません。
@@ -122,7 +133,7 @@ function teardownBeat(): void {
   }
 }
 
-async function applyBackground(mix: ResolvedLiveMix): Promise<void> {
+async function applyBackground(mix: ResolvedLiveMix, epoch: number): Promise<void> {
   const { background } = mix;
   const targetKind: BackgroundKind =
     background.mode === 'procedural' ? 'noise' : background.mode === 'file' ? 'file' : background.mode === 'custom' ? 'custom' : 'off';
@@ -140,6 +151,11 @@ async function applyBackground(mix: ResolvedLiveMix): Promise<void> {
     const bytes = background.fileBytes;
     const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     const audioBuffer = await ctx.decodeAudioData(arrayBuffer as ArrayBuffer);
+    if (epoch !== mixEpoch) {
+      // デコード中に別の再生・停止が割り込みました。デコード済みバッファは捨て、
+      // オーディオグラフには一切触れずに戻ります（古い音を後から鳴らさないため）。
+      return;
+    }
 
     teardownBackground();
     const source = ctx.createBufferSource();
@@ -203,8 +219,8 @@ function applyBeat(mix: ResolvedLiveMix): void {
   }
 
   postToNode(beatNode, { type: 'setToneType', value: beatMode });
-  postToNode(beatNode, { type: 'setParam', key: 'carrierFreq', value: beat.baseFrequency });
-  postToNode(beatNode, { type: 'setParam', key: beatParamKey(beatMode), value: beat.beatFrequency });
+  postToNode(beatNode, { type: 'setParam', key: 'carrierFreq', value: safeFrequency(beat.baseFrequency, 528) });
+  postToNode(beatNode, { type: 'setParam', key: beatParamKey(beatMode), value: safeFrequency(beat.beatFrequency, 10) });
 }
 
 function postToNode(node: AudioWorkletNode | undefined, message: WorkletInMessage): void {
@@ -212,12 +228,22 @@ function postToNode(node: AudioWorkletNode | undefined, message: WorkletInMessag
 }
 
 async function applyMix(mix: ResolvedLiveMix): Promise<void> {
+  const epoch = ++mixEpoch;
   const ctx = await ensureRunningAudioContext();
+  if (epoch !== mixEpoch) {
+    return;
+  }
 
   try {
-    await applyBackground(mix);
+    await applyBackground(mix, epoch);
   } catch (err) {
-    post({ type: 'eng:playbackError', layer: 'background', message: (err as Error).message });
+    if (epoch === mixEpoch) {
+      post({ type: 'eng:playbackError', layer: 'background', message: (err as Error).message });
+    }
+  }
+  // 背景音の適用中（デコード）に stop や別の play が割り込んでいたら、ビートやゲインには触れません。
+  if (epoch !== mixEpoch) {
+    return;
   }
 
   try {
@@ -230,15 +256,22 @@ async function applyMix(mix: ResolvedLiveMix): Promise<void> {
   const beatLevel = mix.beat.enabled ? BEAT_GAIN : 0;
   backgroundGain!.gain.setTargetAtTime(backgroundLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
   beatGain!.gain.setTargetAtTime(beatLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
-  masterGain!.gain.setTargetAtTime(mix.volume, ctx.currentTime, GAIN_SMOOTHING_SEC);
+  masterGain!.gain.setTargetAtTime(safeGain(mix.volume), ctx.currentTime, GAIN_SMOOTHING_SEC);
 
   post({ type: 'eng:playbackStarted' });
 }
 
 async function handleStop(): Promise<void> {
+  // 世代番号を進め、デコード待ちなどで宙に浮いている applyMix があれば無効化します。
+  const epoch = ++mixEpoch;
   if (audioContext && masterGain) {
     masterGain.gain.setTargetAtTime(0, audioContext.currentTime, GAIN_SMOOTHING_SEC);
     await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  // フェード待ちの間に新しい再生が始まっていたら、その再生を尊重してノードを破棄しません
+  // （破棄すると始まったばかりの音が即座に消えてしまうため）。
+  if (epoch !== mixEpoch) {
+    return;
   }
   teardownBackground();
   teardownBeat();
@@ -272,7 +305,7 @@ async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'en
       source.buffer = audioBuffer;
       source.loop = false;
       const gain = ctx.createGain();
-      gain.gain.value = preset.volume;
+      gain.gain.value = safeGain(preset.volume);
       source.connect(gain);
       gain.connect(masterGain!);
       source.onended = () => {

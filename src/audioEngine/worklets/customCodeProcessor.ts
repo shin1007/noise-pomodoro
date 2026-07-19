@@ -1,5 +1,5 @@
 import type { WorkletInMessage, WorkletOutMessage } from './messages';
-import { clamp } from './dsp';
+import { clamp, clampFinite } from './dsp';
 
 type CompiledFn = (t: number, params: Record<string, number>) => number;
 
@@ -22,7 +22,7 @@ class CustomCodeProcessor extends AudioWorkletProcessor {
   private handleMessage(message: WorkletInMessage): void {
     switch (message.type) {
       case 'setVolume':
-        this.volume = message.value;
+        this.volume = clampFinite(message.value, 0, 1, this.volume);
         break;
       case 'setCustomCode':
         this.params = message.params;

@@ -1,6 +1,10 @@
 // noiseProcessor.ts で使う共通 DSP ヘルパーです。小さな状態付きクラスにしておくことで、
 // 各出力チャンネルが独立したインスタンスを持てます（L/R が相関したステレオノイズは聴感上よくありません）。
 
+// パラメータ用のクランプは 3 バンドル共通の実装（utils/clamp.ts）を単一のソースとし、
+// worklet 側は従来どおり './dsp' から import できるよう再エクスポートします。
+export { clampFinite } from '../../utils/clamp';
+
 /**
  * Paul Kellet の改良版ピンクノイズフィルタです。真の 1/f（Voss-McCartney のオクターブ帯域）
  * ピンクノイズを実用的に近似しており、サンプル単位でも十分軽量です。
@@ -76,5 +80,10 @@ export class VioletNoiseGenerator {
 }
 
 export function clamp(value: number, min: number, max: number): number {
+  // NaN / Infinity は音声出力に混入させると、スピーカー破損やグラフ全体のミュートなど
+  // 予測しづらい挙動を招くため、有限でない値は 0 として扱います（音声用途では常に無音側に倒す）。
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
   return Math.max(min, Math.min(max, value));
 }

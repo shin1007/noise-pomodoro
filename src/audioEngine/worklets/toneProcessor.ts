@@ -1,4 +1,5 @@
 import type { ToneType, WorkletInMessage } from './messages';
+import { clampFinite } from './dsp';
 
 const ENVELOPE_RAMP_SEC = 0.005; // 5ms の平滑化で、アイソクロニックのゲートのクリック音を抑えます。
 const TWO_PI = Math.PI * 2;
@@ -29,7 +30,7 @@ class ToneProcessor extends AudioWorkletProcessor {
         this.toneType = message.value;
         break;
       case 'setVolume':
-        this.volume = message.value;
+        this.volume = clampFinite(message.value, 0, 1, this.volume);
         break;
       case 'setParam':
         this.setParam(message.key, message.value);
@@ -42,13 +43,14 @@ class ToneProcessor extends AudioWorkletProcessor {
   private setParam(key: string, value: number): void {
     switch (key) {
       case 'carrierFreq':
-        this.carrierFreq = value;
+        // 可聴域を超える / 非有限な周波数は、耳障りなエイリアスや NaN 出力を招くため範囲内に収めます。
+        this.carrierFreq = clampFinite(value, 20, 20000, this.carrierFreq);
         break;
       case 'beatFreq':
-        this.beatFreq = value;
+        this.beatFreq = clampFinite(value, 0, 100, this.beatFreq);
         break;
       case 'pulseFreq':
-        this.pulseFreq = value;
+        this.pulseFreq = clampFinite(value, 0, 100, this.pulseFreq);
         break;
       default:
         break;

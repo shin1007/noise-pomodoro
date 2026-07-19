@@ -1,5 +1,5 @@
 import type { NoiseType, WorkletInMessage } from './messages';
-import { BlueNoiseGenerator, BrownNoiseGenerator, PinkNoiseGenerator, VioletNoiseGenerator } from './dsp';
+import { BlueNoiseGenerator, BrownNoiseGenerator, PinkNoiseGenerator, VioletNoiseGenerator, clampFinite } from './dsp';
 
 /**
  * 1 つのノードで 3 種類のノイズを port メッセージ経由で切り替えます。
@@ -25,7 +25,7 @@ class NoiseProcessor extends AudioWorkletProcessor {
         this.noiseType = message.value;
         break;
       case 'setVolume':
-        this.volume = message.value;
+        this.volume = clampFinite(message.value, 0, 1, this.volume);
         break;
       default:
         break;

@@ -28,6 +28,15 @@
     "ambient sound"
   ],
   "main": "./dist/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "フェーズ終了スクリプト（extension host で JS を実行する機能）は、信頼済みワークスペースでのみ動作します。",
+      "restrictedConfigurations": [
+        "whiteNoise.enablePhaseEndScripts"
+      ]
+    }
+  },
   "contributes": {
     "commands": [
       {
@@ -65,7 +74,8 @@
         "whiteNoise.enablePhaseEndScripts": {
           "type": "boolean",
           "default": false,
-          "description": "Allow phase-end custom scripts to run. These execute as a JS function inside the extension host (Node) with access to a small vscode API subset -- only enable this if you wrote the script yourself."
+          "scope": "application",
+          "description": "Allow phase-end custom scripts to run. These execute as a JS function inside the extension host (Node) with access to a small vscode API subset -- only enable this if you wrote the script yourself. For safety this can only be set in your user settings (not per-workspace), and scripts run only in trusted workspaces."
         },
         "whiteNoise.statusBar.updateIntervalMs": {
           "type": "number",

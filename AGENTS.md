@@ -25,3 +25,47 @@ TypeScriptとVSCode Extensibility APIを深く理解しており、堅牢で高�
 - 言語: TypeScript
 - `any` 型の使用を禁止し、厳密な型定義を行ってください。
 - 関数や変数は意図が明確に伝わる命名を心がけてください。
+
+# アーキテクチャ地図
+
+esbuild は 4 つの独立したバンドルを生成します（[esbuild.js](esbuild.js)）。tsconfig もバンドルごとに
+分離されているため（下表）、バンドルをまたぐ import は tsconfig の `include` に注意してください。
+
+| バンドル | エントリポイント | 実行環境 | tsconfig |
+|---|---|---|---|
+| extension host | [src/extension.ts](src/extension.ts) | Node（拡張機能ホスト） | [tsconfig.json](tsconfig.json) |
+| UI | [src/media/ui/main.ts](src/media/ui/main.ts) | Webview（DOM） | [tsconfig.webview.json](tsconfig.webview.json) |
+| audio engine | [src/media/audioEngine/engineClient.ts](src/media/audioEngine/engineClient.ts) | 同じ Webview（DOM / Web Audio） | [tsconfig.webview.json](tsconfig.webview.json) |
+| worklets | [src/audioEngine/worklets/index.ts](src/audioEngine/worklets/index.ts) | AudioWorkletGlobalScope | [tsconfig.worklet.json](tsconfig.worklet.json) |
+
+UI と audio engine は同じ `WebviewPanel`（[src/ui/AppWebview.ts](src/ui/AppWebview.ts)）に同居しています。
+AudioContext.resume() がユーザー操作の文脈を要求するブラウザの自動再生ポリシーのため、あえて 1 つの
+ドキュメントにまとめてあります（分割しないでください）。
+
+## 主要ファイルの役割
+
+- [src/protocol.ts](src/protocol.ts) — 3 境界（extension ⇄ UI ⇄ engine）すべてで共有する postMessage 型。
+  新しいメッセージ種別を追加するときは、まずここに型を足してから各バンドルの switch に分岐を追加します。
+- [src/extension.ts](src/extension.ts) — activate() のオーケストレーション。再生状態・設定・ポモドーロを束ね、
+  UI からの `UiToExtMessage` を捌く中枢。ここが肥大化したら機能ごとの分離を検討してください。
+- [src/media/ui/main.ts](src/media/ui/main.ts) — Webview UI 本体。フレームワークを使わず手続き的に DOM を
+  組み立てます。定型（ラベル行・ステッパー・チップボタン等）は [src/media/ui/dom.ts](src/media/ui/dom.ts)
+  のヘルパー（`el`/`button`/`stepper`/`labelRow`/`rangeSlider`）経由で生成してください。生 DOM API を
+  直接叩くコードを増やさないこと。
+- [src/media/audioEngine/engineClient.ts](src/media/audioEngine/engineClient.ts) — Web Audio グラフの構築・
+  破棄。背景音レイヤー（ノイズ/ファイル/カスタムコード、排他）とビートレイヤー（バイノーラル/
+  アイソクロニック）は独立して有効・無効を切り替え、同時再生時は固定比率でミックスします。
+  非同期処理（decodeAudioData 等）をまたぐ競合は `mixEpoch` の世代番号で防いでいます。
+- [src/audioEngine/worklets/](src/audioEngine/worklets/) — 実際の DSP（ノイズ生成・トーン生成・
+  カスタムコード評価）を担う AudioWorkletProcessor 群。他バンドルと共有できないサンドボックス
+  （AudioWorkletGlobalScope）で動くため、依存は `../../utils/*` のような相対 import のみに留めます。
+- [src/state/settings.ts](src/state/settings.ts) / [src/state/migrations.ts](src/state/migrations.ts) —
+  永続化設定のデフォルト値とスキーマ検証。壊れた globalState は個別移行せず既定値へリセットする方針
+  （プレリリース段階のため意図的な割り切り）。
+- [src/pomodoro/PomodoroTimer.ts](src/pomodoro/PomodoroTimer.ts) — ポモドーロの状態機械。UI とは
+  `PomodoroCallbacks` 経由でのみ結合します。
+- [src/utils/clamp.ts](src/utils/clamp.ts) / [src/utils/clone.ts](src/utils/clone.ts) — 3 バンドル共通の
+  数値クランプ（`clampFinite`）とディープコピー（`clone`）。壊れた設定値・postMessage 由来の異常値を
+  丸める箇所は、個別実装せずここを import してください。
+- [src/media/vscodeApi.ts](src/media/vscodeApi.ts) — `acquireVsCodeApi()` はドキュメント全体で一度しか
+  呼べないため、UI と engine の双方が使う共有キャッシュをここに集約しています。

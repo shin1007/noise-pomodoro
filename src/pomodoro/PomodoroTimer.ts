@@ -1,6 +1,16 @@
 import type { PhaseConfig, PomodoroConfig, PomodoroState } from '../protocol';
+import { clampFinite } from '../utils/clamp';
 
 type ActivePhase = 'focus' | 'break';
+
+// フェーズ時間が 0・負・NaN のまま autoAdvance が有効だと、tick のたびに即終了→次フェーズ開始を
+// 繰り返し、毎秒フェーズが切り替わってプリセット再生や通知が暴走します。破損した globalState や
+// Settings Sync 経由の異常値に備え、最低 1 秒（上限 24 時間）に丸めます（非有限値は最低秒へ）。
+const MIN_PHASE_DURATION_SEC = 1;
+const MAX_PHASE_DURATION_SEC = 24 * 60 * 60;
+function sanitizeDurationSec(value: number): number {
+  return clampFinite(value, MIN_PHASE_DURATION_SEC, MAX_PHASE_DURATION_SEC, MIN_PHASE_DURATION_SEC);
+}
 
 export interface PomodoroCallbacks {
   onTick(state: PomodoroState, remainingSec: number, totalSec: number): void;
@@ -90,7 +100,7 @@ export class PomodoroTimer {
 
   private beginPhase(phase: ActivePhase): void {
     const config = this.phaseConfig(phase);
-    this.state = { phase, runState: 'running', phaseStartedAt: Date.now(), phaseDurationSec: config.durationSec, elapsedBeforePauseSec: 0 };
+    this.state = { phase, runState: 'running', phaseStartedAt: Date.now(), phaseDurationSec: sanitizeDurationSec(config.durationSec), elapsedBeforePauseSec: 0 };
     this.startInterval();
     this.callbacks.onPhaseChange(phase, config);
     this.emitTick();

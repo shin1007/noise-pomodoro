@@ -11,6 +11,13 @@ import { logger } from '../utils/logger';
  * 起因の RCE ベクターにはなりません。詳細なリスク整理は実装計画の設計メモを参照してください。
  */
 export function runPhaseEndScript(code: string, phase: 'focus' | 'break'): void {
+  // 信頼していないワークスペースでは、extension host で任意コードを実行するこの機能を止めます。
+  // scriptSource 自体は globalState 由来（ワークスペース外）ですが、この機能は executeCommand で
+  // 任意コマンドを起動できるため、信頼済みのワークスペースに限定するのが安全です。
+  if (!vscode.workspace.isTrusted) {
+    void vscode.window.showWarningMessage('White Noise: フェーズ終了スクリプトは、信頼済みのワークスペースでのみ実行されます。現在のワークスペースは信頼されていないためスキップしました。');
+    return;
+  }
   const enabled = vscode.workspace.getConfiguration('whiteNoise').get<boolean>('enablePhaseEndScripts', false);
   if (!enabled) {
     void vscode.window.showWarningMessage('White Noise: フェーズ終了スクリプトは設定されていますが無効です。実行するには設定で "whiteNoise.enablePhaseEndScripts" を有効にしてください。');

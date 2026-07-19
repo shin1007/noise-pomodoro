@@ -10,6 +10,9 @@ const MIME_BY_EXTENSION: Record<string, string> = {
 };
 
 const MAX_RECOMMENDED_BYTES = 50 * 1024 * 1024;
+// 推奨上限を超えても再生自体は許容しますが、拡張機能ホストのメモリを丸ごと使い切って
+// クラッシュさせないよう、絶対的な上限を設けます（ファイル全体をバッファに読み込むため）。
+const MAX_ALLOWED_BYTES = 250 * 1024 * 1024;
 
 export interface SelectedAudioFile {
   fsPath: string;
@@ -43,6 +46,10 @@ export async function selectAudioFile(): Promise<SelectedAudioFile | undefined> 
 export async function readAudioFile(fsPath: string): Promise<Uint8Array> {
   const uri = vscode.Uri.file(fsPath);
   const stat = await vscode.workspace.fs.stat(uri);
+  if (stat.size > MAX_ALLOWED_BYTES) {
+    const mb = Math.round(stat.size / (1024 * 1024));
+    throw new Error(`音声ファイルが大きすぎます（${mb}MB）。上限は ${MAX_ALLOWED_BYTES / (1024 * 1024)}MB です。`);
+  }
   if (stat.size > MAX_RECOMMENDED_BYTES) {
     void vscode.window.showWarningMessage(`White Noise: "${fsPath}" は 50MB を超えています。環境音のループファイルは、通常これよりかなり短いです。`);
   }

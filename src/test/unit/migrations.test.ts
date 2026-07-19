@@ -35,6 +35,63 @@ describe('migrateSettings', () => {
     );
   });
 
+  it('returns defaults when preset arrays contain malformed elements', () => {
+    const base = {
+      schemaVersion: SETTINGS_SCHEMA_VERSION,
+      chimePresets: [],
+      pomodoro: DEFAULT_SETTINGS.pomodoro,
+      lastUsed: {
+        background: { mode: 'procedural', noiseType: 'white' },
+        beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
+        beatMode: 'binaural',
+        masterVolume: 0.3,
+        activePresetId: null,
+      },
+    };
+    // null 要素、必須フィールド欠落は、実行時の TypeError を招くため既定値へ戻します。
+    assert.deepStrictEqual(migrateSettings({ ...base, ambientPresets: [null] }), DEFAULT_SETTINGS);
+    assert.deepStrictEqual(migrateSettings({ ...base, ambientPresets: [{ id: 'x', name: 'x' }] }), DEFAULT_SETTINGS);
+    assert.deepStrictEqual(
+      migrateSettings({ ...base, chimePresets: [{ id: 'c', name: 'c' }] }),
+      DEFAULT_SETTINGS,
+    );
+  });
+
+  it('returns defaults when pomodoro phase config or beatMode is malformed', () => {
+    const lastUsed = {
+      background: { mode: 'procedural', noiseType: 'white' },
+      beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
+      beatMode: 'binaural',
+      masterVolume: 0.3,
+      activePresetId: null,
+    };
+    assert.deepStrictEqual(
+      migrateSettings({ schemaVersion: SETTINGS_SCHEMA_VERSION, ambientPresets: [], chimePresets: [], pomodoro: { focus: {}, break: {} }, lastUsed }),
+      DEFAULT_SETTINGS,
+    );
+    assert.deepStrictEqual(
+      migrateSettings({ schemaVersion: SETTINGS_SCHEMA_VERSION, ambientPresets: [], chimePresets: [], pomodoro: DEFAULT_SETTINGS.pomodoro, lastUsed: { ...lastUsed, beatMode: 'bogus' } }),
+      DEFAULT_SETTINGS,
+    );
+  });
+
+  it('passes through settings that carry the real default presets', () => {
+    const valid = {
+      schemaVersion: SETTINGS_SCHEMA_VERSION,
+      ambientPresets: DEFAULT_SETTINGS.ambientPresets,
+      chimePresets: DEFAULT_SETTINGS.chimePresets,
+      pomodoro: DEFAULT_SETTINGS.pomodoro,
+      lastUsed: {
+        background: { mode: 'file', file: { fsPath: '/tmp/a.wav', mimeType: 'audio/wav', loop: true } },
+        beat: { enabled: true, baseFrequency: 528, beatFrequency: 10 },
+        beatMode: 'isochronic',
+        masterVolume: 0.3,
+        activePresetId: null,
+      },
+    };
+    assert.deepStrictEqual(migrateSettings(valid), valid);
+  });
+
   it('passes through settings that match the current schema', () => {
     const valid = {
       schemaVersion: SETTINGS_SCHEMA_VERSION,
