@@ -112,7 +112,7 @@ export interface WhiteNoiseSettings {
   };
 }
 
-export type PlaybackStatus = 'stopped' | 'playing' | 'paused';
+export type PlaybackStatus = 'stopped' | 'playing';
 
 export interface PlaybackState {
   status: PlaybackStatus;
@@ -132,8 +132,6 @@ export type UiToExtMessage =
   | { type: 'ui:applyPreset'; presetId: string }
   | { type: 'ui:play' }
   | { type: 'ui:stop' }
-  | { type: 'ui:pause' }
-  | { type: 'ui:resume' }
   | { type: 'ui:setBackground'; background: BackgroundConfig }
   | { type: 'ui:setBeat'; beat: BeatConfig }
   | { type: 'ui:setBeatMode'; mode: BeatMode }
@@ -170,9 +168,7 @@ export type ResolvedEnginePreset = PresetConfig & { fileBytes?: Uint8Array };
 export type ExtToEngineMessage =
   | { type: 'eng:play'; mix: ResolvedLiveMix }
   | { type: 'eng:playOneShot'; preset: ResolvedEnginePreset }
-  | { type: 'eng:stop' }
-  | { type: 'eng:pause' }
-  | { type: 'eng:resume' };
+  | { type: 'eng:stop' };
 
 // ---- engine から extension へ ----
 export type EngineToExtMessage =

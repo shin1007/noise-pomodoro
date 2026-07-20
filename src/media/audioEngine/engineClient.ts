@@ -254,16 +254,6 @@ async function handleStop(): Promise<void> {
   teardownBeat();
 }
 
-function handlePause(): void {
-  masterGain?.disconnect();
-}
-
-function handleResume(): void {
-  if (masterGain && audioContext) {
-    masterGain.connect(audioContext.destination);
-  }
-}
-
 const ONE_SHOT_MAX_MS = 3000;
 
 /**
@@ -325,12 +315,6 @@ window.addEventListener('message', (event: MessageEvent<ExtToEngineMessage>) => 
       break;
     case 'eng:stop':
       void handleStop();
-      break;
-    case 'eng:pause':
-      handlePause();
-      break;
-    case 'eng:resume':
-      handleResume();
       break;
     default:
       break;

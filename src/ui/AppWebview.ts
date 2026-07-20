@@ -104,14 +104,6 @@ export class AppWebview {
     this.sendEngine({ type: 'eng:stop' });
   }
 
-  pause(): void {
-    this.sendEngine({ type: 'eng:pause' });
-  }
-
-  resume(): void {
-    this.sendEngine({ type: 'eng:resume' });
-  }
-
   private sendEngine(message: ExtToEngineMessage): void {
     if (!this.engineReady) {
       this.pendingEngineMessages.push(message);
