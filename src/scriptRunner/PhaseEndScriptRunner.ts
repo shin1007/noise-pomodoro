@@ -5,10 +5,14 @@ import { logger } from '../utils/logger';
  * ユーザー作成のフェーズ終了スクリプトを実行します。これは extension host（実際の Node
  * プロセス）内で動くため、音声カスタムコードの sandbox（AudioWorkletGlobalScope には
  * Node / DOM API がない）とは異なり、`new Function` の中身から `process` などの Node
- * グローバルに到達できる可能性があります。そのため明示的な opt-in 設定で有効化し、
- * 実行内容はすべて出力チャンネルへ記録します。コードはユーザー自身の GUI から保存された
- * globalState の設定だけを使い、ワークスペース内ファイルは参照しないため、リモートリポジトリ
- * 起因の RCE ベクターにはなりません。詳細なリスク整理は実装計画の設計メモを参照してください。
+ * グローバルに到達できる可能性があります。リスクは次の4点で抑えています。
+ * (1) 明示的な opt-in 設定（whiteNoise.enablePhaseEndScripts）でのみ有効化する、
+ * (2) 信頼済みワークスペースでのみ実行する（下記 isTrusted チェック）、
+ * (3) スクリプトへ渡す `vscode` 引数は showInformationMessage/showWarningMessage/
+ *     executeCommand だけを持つ最小限の API に限定する、
+ * (4) 実行内容はすべて出力チャンネルへ記録する。
+ * コードはユーザー自身の GUI から保存された globalState の設定だけを使い、ワークスペース内
+ * ファイルは参照しないため、リモートリポジトリ起因の RCE ベクターにはなりません。
  */
 export function runPhaseEndScript(code: string, phase: 'focus' | 'break'): void {
   // 信頼していないワークスペースでは、extension host で任意コードを実行するこの機能を止めます。
