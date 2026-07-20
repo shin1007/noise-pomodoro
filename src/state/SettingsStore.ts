@@ -25,9 +25,4 @@ export class SettingsStore {
   async persist(): Promise<void> {
     await this.context.globalState.update(SETTINGS_KEY, this.settings);
   }
-
-  async save(next: WhiteNoiseSettings): Promise<void> {
-    this.settings = next;
-    await this.persist();
-  }
 }
