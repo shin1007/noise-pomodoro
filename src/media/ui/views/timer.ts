@@ -91,16 +91,17 @@ function renderPomodoroTab(container: HTMLElement, s: WhiteNoiseSettings): void 
  * ポモドーロ自体の開始/一時停止/リセットは別ボタンで行います。両方が同時に再生を制御すると
  * 分かりづらくなるため、一方が動作中はもう一方のシークバー操作・開始操作を無効化します。 */
 export function renderTimerSection(app: HTMLElement, s: WhiteNoiseSettings): void {
-  const headerRow = el('div', { className: 'label-row' }, [el('h3', { text: 'タイマー' }), button('⚙', 'icon-button', openPomodoroSettings)]);
-  const section = el('div', { className: 'section' }, [headerRow]);
-
-  section.appendChild(
-    button(
-      `ポモドーロ ${timerTab === 'pomodoro' ? 'ON' : 'OFF'}`,
-      'pomodoro-toggle-button' + (timerTab === 'pomodoro' ? ' is-on' : ''),
-      () => setTimerTab(timerTab === 'pomodoro' ? 'sleep' : 'pomodoro'),
-    ),
+  const pomodoroToggle = button(
+    `ポモドーロ ${timerTab === 'pomodoro' ? 'ON' : 'OFF'}`,
+    'pomodoro-toggle-button' + (timerTab === 'pomodoro' ? ' is-on' : ''),
+    () => setTimerTab(timerTab === 'pomodoro' ? 'sleep' : 'pomodoro'),
   );
+  const settingsButton = button('⚙', 'icon-button', openPomodoroSettings);
+  const headerRow = el('div', { className: 'label-row' }, [
+    el('h3', { text: 'タイマー' }),
+    el('div', { className: 'timer-header-actions' }, [pomodoroToggle, settingsButton]),
+  ]);
+  const section = el('div', { className: 'section' }, [headerRow]);
 
   if (timerTab === 'sleep') {
     renderSleepTab(section);
