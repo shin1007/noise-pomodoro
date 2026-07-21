@@ -371,8 +371,9 @@ export function activate(context: vscode.ExtensionContext): void {
     // パネルを開かず直接トグル再生します（自動再生ポリシーの都合上、
     // 一度もクリックされていない Webview では resume() が完了しないため）。
     vscode.commands.registerCommand('whiteNoise.statusBar.action', () => {
+      // ステータスバーからの呼び出しでは、エディタを分割せず現在のエディタ列に開きます。
       if (pomodoroTimer.getState().phase !== 'idle') {
-        AppWebview.show(context, panelCallbacks());
+        AppWebview.show(context, panelCallbacks(), vscode.ViewColumn.Active);
         return;
       }
       if (playback.status === 'playing') {
@@ -383,7 +384,7 @@ export function activate(context: vscode.ExtensionContext): void {
         dispatchUiMessage({ type: 'ui:play' });
         return;
       }
-      AppWebview.show(context, panelCallbacks());
+      AppWebview.show(context, panelCallbacks(), vscode.ViewColumn.Active);
     }),
     vscode.commands.registerCommand('whiteNoise.play', () => dispatchUiMessage({ type: 'ui:play' })),
     vscode.commands.registerCommand('whiteNoise.stop', () => dispatchUiMessage({ type: 'ui:stop' })),

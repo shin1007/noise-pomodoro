@@ -37,17 +37,18 @@ export class AppWebview {
   // よいかどうかの判定に使います。
   private everPlayed = false;
 
-  static ensure(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks): AppWebview {
+  /** 新規生成が必要な場合、その初期表示列。既存パネルがあれば無視されます（分割位置は生成時にしか決まらないため）。 */
+  static ensure(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks, viewColumn: vscode.ViewColumn = vscode.ViewColumn.Beside): AppWebview {
     if (AppWebview.current && !AppWebview.current.disposed) {
       return AppWebview.current;
     }
-    AppWebview.current = new AppWebview(context, callbacks);
+    AppWebview.current = new AppWebview(context, callbacks, viewColumn);
     return AppWebview.current;
   }
 
   /** パネルを（必要なら生成した上で）前面に表示します。ユーザーが明示的にパネルを開いたときに使います。 */
-  static show(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks): void {
-    AppWebview.ensure(context, callbacks).panel.reveal(undefined, false);
+  static show(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks, viewColumn: vscode.ViewColumn = vscode.ViewColumn.Beside): void {
+    AppWebview.ensure(context, callbacks, viewColumn).panel.reveal(undefined, false);
   }
 
   static hasInstance(): boolean {
@@ -72,12 +73,12 @@ export class AppWebview {
     AppWebview.current?.panel.dispose();
   }
 
-  private constructor(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks) {
+  private constructor(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks, viewColumn: vscode.ViewColumn) {
     this.callbacks = callbacks;
     this.panel = vscode.window.createWebviewPanel(
       AppWebview.viewType,
       'White Noise & Pomodoro',
-      { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
+      { viewColumn, preserveFocus: true },
       {
         enableScripts: true,
         retainContextWhenHidden: true,
