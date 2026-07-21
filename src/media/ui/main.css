@@ -403,6 +403,12 @@ body {
   opacity: 0.75;
 }
 
+.preset-description-line {
+  font-size: 11px;
+  opacity: 0.7;
+  white-space: normal;
+}
+
 .preset-reset-button {
   border: none;
   background: transparent;
