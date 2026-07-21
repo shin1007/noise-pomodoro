@@ -15,7 +15,6 @@ import type {
   WhiteNoiseSettings,
 } from '../../protocol';
 import { getVsCodeApi } from '../vscodeApi';
-import { clone } from '../../utils/clone';
 import { TIMER_SEEKBAR_MAX_MINUTES, updateTimerSeekbar } from './views/timerSeekbar';
 
 // 共有 vscode API（同一 Webview 内の engineClient.ts と acquireVsCodeApi() を共用）。
@@ -71,15 +70,14 @@ export function closePomodoroSettings(): void {
   requestRender();
 }
 
-export interface PresetEditorDraft {
-  id: string;
-  name: string;
-  description: string;
-  icon?: string;
-}
-export let editingPresetId: string | null = null;
-export let editingDraft: PresetEditorDraft | null = null;
-let editorInitialLastUsed: WhiteNoiseSettings['lastUsed'] | null = null;
+// ヘッダーのプリセット選択欄が指す「適用先」のプリセットIDと、その説明文の下書きです。
+// 背景音/ビートを個別に調整すると lastUsed.activePresetId は null に戻ってしまう
+// （＝プリセットと完全一致でなくなったことを示す）ため、"どのプリセットへ保存するか" は
+// activePresetId とは別にここで保持し続けます（選び直すまで維持）。
+export let selectedPresetId: string | null = null;
+export let presetDescriptionDraft = '';
+let presetSelectionInitialized = false;
+let refreshDescriptionOnNextSync = false;
 
 /** リスニングタイマーの分数を [0, 60] に収めて更新します（外部から直接代入できない export let の setter）。 */
 export function setListenTimerMinutes(minutes: number): number {
@@ -179,68 +177,47 @@ function handlePlaybackUpdate(next: PlaybackState): void {
   playback = next;
 }
 
-// ---- プリセット編集 ------------------------------------------------------------
+// ---- プリセット選択・適用 -------------------------------------------------------
 
-export function openPresetEditor(preset: AmbientPreset): void {
-  if (!settings) return;
-  editingPresetId = preset.id;
-  editingDraft = { id: preset.id, name: preset.name, description: preset.description ?? '', icon: preset.icon };
-  editorInitialLastUsed = clone(settings.lastUsed);
-  setBackground(preset.background);
-  setBeat({ ...preset.beat });
-  settings.lastUsed.masterVolume = preset.volume;
-  post({ type: 'ui:setMasterVolume', value: preset.volume });
+/** ヘッダーのドロップダウンでプリセットを選ぶと、その設定を即座に現在の設定へ反映します。 */
+export function selectPreset(s: WhiteNoiseSettings, preset: AmbientPreset): void {
+  selectedPresetId = preset.id;
+  presetDescriptionDraft = preset.description ?? '';
+  post({ type: 'ui:applyPreset', presetId: preset.id });
+  applyPresetLocally(s, preset);
   requestRender();
 }
 
-export function closePresetEditor(): void {
-  editingPresetId = null;
-  editingDraft = null;
-  editorInitialLastUsed = null;
-  requestRender();
+export function setPresetDescriptionDraft(value: string): void {
+  presetDescriptionDraft = value;
 }
 
-export function cancelPresetEditor(): void {
-  if (settings && editorInitialLastUsed) {
-    settings.lastUsed = clone(editorInitialLastUsed);
-    post({ type: 'ui:setBackground', background: settings.lastUsed.background });
-    post({ type: 'ui:setBeat', beat: settings.lastUsed.beat });
-    post({ type: 'ui:setMasterVolume', value: settings.lastUsed.masterVolume });
-  }
-  closePresetEditor();
-}
-
-export function saveEditingPreset(): void {
-  if (!settings || !editingDraft) return;
+/** 「現在の設定をプリセットに適用」ボタン。選択中プリセットへ、現在の背景音/ビート/音量と説明文の下書きを上書き保存します。 */
+export function applyCurrentSettingsToPreset(s: WhiteNoiseSettings): void {
+  const target = s.ambientPresets.find((preset) => preset.id === selectedPresetId);
+  if (!target) return;
   const updated: AmbientPreset = {
-    id: editingDraft.id,
-    name: editingDraft.name,
-    description: editingDraft.description,
-    icon: editingDraft.icon,
-    background: settings.lastUsed.background,
-    beat: { ...settings.lastUsed.beat },
-    volume: settings.lastUsed.masterVolume,
+    ...target,
+    description: presetDescriptionDraft,
+    background: s.lastUsed.background,
+    beat: { ...s.lastUsed.beat },
+    volume: s.lastUsed.masterVolume,
   };
   post({ type: 'ui:savePreset', preset: updated });
   post({ type: 'ui:applyPreset', presetId: updated.id });
 
-  const index = settings.ambientPresets.findIndex((p) => p.id === updated.id);
+  const index = s.ambientPresets.findIndex((p) => p.id === updated.id);
   if (index >= 0) {
-    settings.ambientPresets[index] = updated;
-  } else {
-    settings.ambientPresets.push(updated);
+    s.ambientPresets[index] = updated;
   }
-  settings.lastUsed.activePresetId = updated.id;
+  s.lastUsed.activePresetId = updated.id;
   playback = { ...playback, activePresetId: updated.id };
-  closePresetEditor();
+  requestRender();
 }
 
-export function previewPresetVolume(percent: number): void {
-  if (!settings) return;
-  const clamped = Math.max(0, Math.min(100, percent));
-  settings.lastUsed.masterVolume = clamped / 100;
-  post({ type: 'ui:setMasterVolume', value: clamped / 100 });
-  requestRender();
+export function resetAmbientPresets(): void {
+  refreshDescriptionOnNextSync = true;
+  post({ type: 'ui:resetPresets' });
 }
 
 // ---- ポモドーロ ---------------------------------------------------------------
@@ -289,6 +266,19 @@ export function handleExtMessage(message: ExtToUiMessage): void {
         if (message.pomodoro.runState !== 'stopped') {
           timerTab = 'pomodoro';
         }
+      }
+      // ヘッダーのプリセット選択欄も同様に初回のみ既定値を決めます（以降はユーザーの選択を維持）。
+      if (!presetSelectionInitialized) {
+        presetSelectionInitialized = true;
+        const initial = message.settings.ambientPresets.find((preset) => preset.id === message.settings.lastUsed.activePresetId) ?? message.settings.ambientPresets[0];
+        selectedPresetId = initial?.id ?? null;
+        presetDescriptionDraft = initial?.description ?? '';
+      }
+      // プリセットのリセット直後は、選択中プリセットの説明文を最新の既定値に合わせ直します。
+      if (refreshDescriptionOnNextSync) {
+        refreshDescriptionOnNextSync = false;
+        const target = message.settings.ambientPresets.find((preset) => preset.id === selectedPresetId);
+        presetDescriptionDraft = target?.description ?? '';
       }
       requestRender();
       break;

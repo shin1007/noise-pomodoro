@@ -1,11 +1,10 @@
 import './main.css';
 import type { ExtToUiMessage } from '../../protocol';
-import { editingDraft, editingPresetId, handleExtMessage, pomodoroSettingsOpen, post, settings, setRenderCallback } from './state';
+import { handleExtMessage, pomodoroSettingsOpen, post, settings, setRenderCallback } from './state';
 import { renderHeader } from './views/header';
 import { renderVolumeControl } from './views/controls';
 import { renderBackgroundSection } from './views/background';
 import { renderBeatSection } from './views/beat';
-import { renderPresetEditorModal } from './views/presetEditor';
 import { renderTimerSection } from './views/timer';
 import { renderPomodoroSettingsModal } from './views/pomodoroSettings';
 
@@ -27,9 +26,6 @@ function render(): void {
   renderVolumeControl(app, s);
   renderBackgroundSection(app, s);
   renderBeatSection(app, s);
-  if (editingPresetId && editingDraft) {
-    renderPresetEditorModal(app, s);
-  }
   if (pomodoroSettingsOpen) {
     renderPomodoroSettingsModal(app, s);
   }
