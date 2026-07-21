@@ -93,14 +93,23 @@ body {
 }
 
 .header-row {
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
   margin-bottom: 12px;
   padding: 8px 10px;
   border-radius: 6px;
   border: 1px solid var(--vscode-widget-border, transparent);
   background: var(--vscode-editorWidget-background, var(--vscode-button-secondaryBackground));
+}
+
+.header-top-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.preset-description {
+  margin: 6px 0 0;
+  font-size: 11px;
+  opacity: 0.7;
 }
 
 .current-preset-info {
@@ -112,11 +121,28 @@ body {
   min-width: 0;
 }
 
-.current-preset-name,
+.preset-select,
 .current-preset-info .preset-setting-summary {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.preset-select {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  cursor: pointer;
+}
+
+.preset-select:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
 }
 
 .play-icon-button {
@@ -369,42 +395,14 @@ body {
   margin-bottom: 8px;
 }
 
-.preset-card {
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid var(--vscode-widget-border, transparent);
-  background: var(--vscode-editorWidget-background, var(--vscode-button-secondaryBackground));
-  cursor: pointer;
-}
-
-.preset-card.active {
-  border-color: var(--vscode-focusBorder, var(--vscode-button-background));
-}
-
-.preset-card-head {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.preset-card-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .preset-setting-summary {
   font-size: 11px;
   opacity: 0.75;
 }
 
-.preset-description-readonly {
-  margin: 4px 0 0;
-  font-size: 11px;
-  opacity: 0.7;
-}
-
 .preset-edit-button {
+  align-self: center;
+  flex-shrink: 0;
   border: none;
   background: transparent;
   color: inherit;
@@ -503,7 +501,8 @@ body {
 
 .preset-card-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .preset-apply-button {

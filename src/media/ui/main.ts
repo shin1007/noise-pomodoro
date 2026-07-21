@@ -5,7 +5,6 @@ import { renderHeader } from './views/header';
 import { renderVolumeControl } from './views/controls';
 import { renderBackgroundSection } from './views/background';
 import { renderBeatSection } from './views/beat';
-import { renderPresetsSection } from './views/presets';
 import { renderPresetEditorModal } from './views/presetEditor';
 import { renderTimerSection } from './views/timer';
 import { renderPomodoroSettingsModal } from './views/pomodoroSettings';
@@ -28,7 +27,6 @@ function render(): void {
   renderVolumeControl(app, s);
   renderBackgroundSection(app, s);
   renderBeatSection(app, s);
-  renderPresetsSection(app, s);
   if (editingPresetId && editingDraft) {
     renderPresetEditorModal(app, s);
   }

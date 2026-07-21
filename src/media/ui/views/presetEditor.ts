@@ -1,7 +1,7 @@
 import type { WhiteNoiseSettings } from '../../../protocol';
 import { button, el, labelRow, stepper } from '../dom';
 import { BRAINWAVE_BANDS, NOISE_CHIPS, bandForFrequency } from '../constants';
-import { cancelPresetEditor, editingDraft, previewPresetVolume, saveEditingPreset, setBackground, setBeat } from '../state';
+import { cancelPresetEditor, closePresetEditor, editingDraft, post, previewPresetVolume, saveEditingPreset, setBackground, setBeat } from '../state';
 import { renderBaseFrequencyControl } from './beat';
 
 function renderLabeledInput(labelText: string, input: HTMLElement): HTMLLabelElement {
@@ -58,7 +58,11 @@ export function renderPresetEditorModal(app: HTMLElement, s: WhiteNoiseSettings)
   );
   body.appendChild(el('div', { className: 'control-group preset-control-group' }, [labelRow('音量', volStepper)]));
 
-  body.appendChild(el('div', { className: 'preset-card-actions' }, [button('適用して保存', 'preset-apply-button', saveEditingPreset)]));
+  const resetAllButton = button('プリセットを既定に戻す', 'preset-reset-button', () => {
+    post({ type: 'ui:resetPresets' });
+    closePresetEditor();
+  });
+  body.appendChild(el('div', { className: 'preset-card-actions' }, [resetAllButton, button('適用して保存', 'preset-apply-button', saveEditingPreset)]));
 
   const header = el('div', { className: 'modal-header' }, [el('h2', { text: 'プリセット編集' }), button('×', 'close-modal', cancelPresetEditor)]);
   const modal = el('div', { className: 'modal-content preset-editor-modal' }, [header, body]);
