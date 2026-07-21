@@ -1,6 +1,6 @@
 import type { PhaseConfig, WhiteNoiseSettings } from '../../../protocol';
 import { button, el } from '../dom';
-import { closePomodoroSettings, updatePomodoroConfig } from '../state';
+import { closePomodoroSettings, post, updatePomodoroConfig } from '../state';
 
 function renderCheckboxLabel(checked: boolean, text: string, onChange: (checked: boolean) => void, trailing?: HTMLElement): HTMLLabelElement {
   const checkbox = el('input');
@@ -53,7 +53,9 @@ function renderPhaseConfigEditor(container: HTMLElement, s: WhiteNoiseSettings, 
     soundSelect.appendChild(option);
   }
   soundSelect.addEventListener('change', () => updatePomodoroConfig((c) => (c[phaseKey].endAction.soundPresetId = soundSelect.value)));
-  section.appendChild(renderCheckboxLabel(config.endAction.playSound, ' 終了音を鳴らす: ', (checked) => updatePomodoroConfig((c) => (c[phaseKey].endAction.playSound = checked)), soundSelect));
+  const previewButton = button('▶', 'icon-button', () => post({ type: 'ui:previewChime', presetId: soundSelect.value }));
+  const soundControls = el('span', { className: 'chime-preview-row' }, [soundSelect, previewButton]);
+  section.appendChild(renderCheckboxLabel(config.endAction.playSound, ' 終了音を鳴らす: ', (checked) => updatePomodoroConfig((c) => (c[phaseKey].endAction.playSound = checked)), soundControls));
 
   container.appendChild(section);
 }

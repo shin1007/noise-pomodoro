@@ -40,6 +40,18 @@ export function activate(context: vscode.ExtensionContext): void {
     return settingsStore.get().chimePresets.find((p) => p.id === presetId);
   }
 
+  function playChimePreset(presetId: string): void {
+    const chimePreset = findChimePreset(presetId);
+    if (!chimePreset) {
+      return;
+    }
+    const resolved =
+      chimePreset.mode === 'file' && chimePreset.file
+        ? readAudioFile(chimePreset.file.fsPath).then((bytes) => ({ ...chimePreset, fileBytes: bytes }))
+        : Promise.resolve(chimePreset);
+    void resolved.then((r) => getPanel().playOneShot(r)).catch((err) => logger.error(`Failed to play chime: ${(err as Error).message}`));
+  }
+
   async function resolveBackground(background: BackgroundConfig): Promise<ResolvedBackgroundConfig> {
     if (background.mode !== 'file' || !background.file) {
       // ファイル以外の背景に切り替えると engine 側はファイルノードを破棄します。
@@ -209,14 +221,7 @@ export function activate(context: vscode.ExtensionContext): void {
         void vscode.window.showInformationMessage(`White Noise: ${endAction.toastMessage ?? defaultMsg}`);
       }
       if (endAction.playSound && endAction.soundPresetId) {
-        const soundPreset = findChimePreset(endAction.soundPresetId);
-        if (soundPreset) {
-          const resolved =
-            soundPreset.mode === 'file' && soundPreset.file
-              ? readAudioFile(soundPreset.file.fsPath).then((bytes) => ({ ...soundPreset, fileBytes: bytes }))
-              : Promise.resolve(soundPreset);
-          void resolved.then((r) => getPanel().playOneShot(r)).catch((err) => logger.error(`Failed to play end-of-phase sound: ${(err as Error).message}`));
-        }
+        playChimePreset(endAction.soundPresetId);
       }
       if (endAction.runScript && endAction.scriptSource) {
         runPhaseEndScript(endAction.scriptSource, phase);
@@ -347,6 +352,9 @@ export function activate(context: vscode.ExtensionContext): void {
         break;
       case 'ui:pomodoroSetRemaining':
         pomodoroTimer.setRemainingSec(message.remainingSec);
+        break;
+      case 'ui:previewChime':
+        playChimePreset(message.presetId);
         break;
       default:
         logger.info(`UI メッセージはまだ未接続です（後続実装予定）: ${(message as { type: string }).type}`);

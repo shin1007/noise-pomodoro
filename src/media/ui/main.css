@@ -275,6 +275,12 @@ body {
   background: var(--vscode-button-secondaryHoverBackground);
 }
 
+.chime-preview-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .timer-header-actions {
   display: flex;
   align-items: center;
