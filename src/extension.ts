@@ -345,6 +345,9 @@ export function activate(context: vscode.ExtensionContext): void {
       case 'ui:pomodoroSkipPhase':
         pomodoroTimer.skipPhase();
         break;
+      case 'ui:pomodoroSetRemaining':
+        pomodoroTimer.setRemainingSec(message.remainingSec);
+        break;
       default:
         logger.info(`UI メッセージはまだ未接続です（後続実装予定）: ${(message as { type: string }).type}`);
         break;

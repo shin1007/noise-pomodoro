@@ -82,6 +82,18 @@ export class PomodoroTimer {
     this.emitTick();
   }
 
+  /**
+   * 実行中/一時停止中のフェーズの残り時間を、経過分はそのままに直接上書きします
+   * （シークバーのドラッグ操作用）。idle 中は対象フェーズがないため無視します。
+   */
+  setRemainingSec(remainingSec: number): void {
+    if (this.state.phase === 'idle') {
+      return;
+    }
+    this.state = { ...this.state, phaseDurationSec: sanitizeDurationSec(this.elapsedSec() + Math.max(0, remainingSec)) };
+    this.emitTick();
+  }
+
   skipPhase(): void {
     if (this.state.phase === 'idle') {
       return;

@@ -1,22 +1,23 @@
-import type { AmbientPreset, WhiteNoiseSettings } from '../../../protocol';
+import type { AmbientPreset, BackgroundConfig, BeatConfig, WhiteNoiseSettings } from '../../../protocol';
 import { button, el } from '../dom';
 import { bandForFrequency, noiseLabel } from '../constants';
 import { applyPresetLocally, openPresetEditor, post, requestRender } from '../state';
 
-function buildPresetSummary(preset: AmbientPreset): string {
+/** プリセットカード・現在の設定表示の両方から使う「背景音 + ビート」の一行サマリーです。 */
+export function buildPresetSummary(config: { background: BackgroundConfig; beat: BeatConfig }): string {
   const bgLabel =
-    preset.background.mode === 'off'
+    config.background.mode === 'off'
       ? 'ノイズなし'
-      : preset.background.mode === 'procedural' && preset.background.noiseType
-        ? noiseLabel(preset.background.noiseType)
-        : preset.background.mode === 'file'
+      : config.background.mode === 'procedural' && config.background.noiseType
+        ? noiseLabel(config.background.noiseType)
+        : config.background.mode === 'file'
           ? 'ファイル'
           : 'カスタム';
-  if (!preset.beat.enabled) {
+  if (!config.beat.enabled) {
     return bgLabel;
   }
-  const band = bandForFrequency(preset.beat.beatFrequency);
-  return `${bgLabel} · ${preset.beat.baseFrequency}Hz (${band.label}${band.symbol})`;
+  const band = bandForFrequency(config.beat.beatFrequency);
+  return `${bgLabel} · ${config.beat.baseFrequency}Hz (${band.label}${band.symbol})`;
 }
 
 function renderPresetCard(s: WhiteNoiseSettings, preset: AmbientPreset): HTMLDivElement {

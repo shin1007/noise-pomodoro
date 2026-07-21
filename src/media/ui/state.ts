@@ -16,6 +16,7 @@ import type {
 } from '../../protocol';
 import { getVsCodeApi } from '../vscodeApi';
 import { clone } from '../../utils/clone';
+import { TIMER_SEEKBAR_MAX_MINUTES, updateTimerSeekbar } from './views/timerSeekbar';
 
 // 共有 vscode API（同一 Webview 内の engineClient.ts と acquireVsCodeApi() を共用）。
 const vscode = getVsCodeApi();
@@ -49,6 +50,27 @@ export let listenTimerMinutes = 30;
 export let listenTimerRemainingSec: number | null = null;
 let listenTimerHandle: number | undefined;
 
+// 「タイマー」セクション内のタブ選択（スリープ / ポモドーロ）。両方を同時に動かすと
+// どちらが再生を止めているのか分かりづらくなるため、UI 上は排他的に切り替える表示にしています。
+export type TimerTab = 'sleep' | 'pomodoro';
+export let timerTab: TimerTab = 'sleep';
+let timerTabAutoSelected = false;
+
+export function setTimerTab(tab: TimerTab): void {
+  timerTab = tab;
+  requestRender();
+}
+
+export let pomodoroSettingsOpen = false;
+export function openPomodoroSettings(): void {
+  pomodoroSettingsOpen = true;
+  requestRender();
+}
+export function closePomodoroSettings(): void {
+  pomodoroSettingsOpen = false;
+  requestRender();
+}
+
 export interface PresetEditorDraft {
   id: string;
   name: string;
@@ -63,6 +85,15 @@ let editorInitialLastUsed: WhiteNoiseSettings['lastUsed'] | null = null;
 export function setListenTimerMinutes(minutes: number): number {
   listenTimerMinutes = Math.max(0, Math.min(60, minutes));
   return listenTimerMinutes;
+}
+
+/** カウントダウン中にシークバーをドラッグしたときの、残り秒数の直接上書きです。 */
+export function setListenTimerRemainingSec(seconds: number): void {
+  if (listenTimerRemainingSec === null) {
+    return;
+  }
+  listenTimerRemainingSec = Math.max(0, Math.min(TIMER_SEEKBAR_MAX_MINUTES * 60, seconds));
+  updateTimerSeekbar('sleep-timer-seekbar', listenTimerRemainingSec, formatRemaining(listenTimerRemainingSec));
 }
 
 // ---- 設定変更（extension へ送信しつつ再描画） ---------------------------------
@@ -130,10 +161,7 @@ function startListenTimerIfNeeded(): void {
       return;
     }
     listenTimerRemainingSec -= 1;
-    const pill = document.getElementById('listen-timer-pill');
-    if (pill) {
-      pill.textContent = formatRemaining(listenTimerRemainingSec);
-    }
+    updateTimerSeekbar('sleep-timer-seekbar', listenTimerRemainingSec, formatRemaining(listenTimerRemainingSec));
     if (listenTimerRemainingSec <= 0) {
       clearListenTimer();
       post({ type: 'ui:stop' });
@@ -230,6 +258,14 @@ export function updatePomodoroConfig(mutate: (config: PomodoroConfig) => void): 
   post({ type: 'ui:updatePomodoroConfig', pomodoro: next });
 }
 
+/** 実行中/一時停止中のフェーズの残り時間を、シークバーのドラッグで直接上書きします。 */
+export function setPomodoroRemainingMinutes(minutes: number): void {
+  const remainingSec = Math.max(0, Math.min(TIMER_SEEKBAR_MAX_MINUTES, minutes)) * 60;
+  pomodoroRemainingSec = remainingSec;
+  updateTimerSeekbar('pomodoro-timer-seekbar', remainingSec, formatRemaining(remainingSec));
+  post({ type: 'ui:pomodoroSetRemaining', remainingSec });
+}
+
 export function formatPomodoroStatus(): string {
   const mm = Math.floor(pomodoroRemainingSec / 60).toString().padStart(2, '0');
   const ss = Math.floor(pomodoroRemainingSec % 60).toString().padStart(2, '0');
@@ -246,6 +282,14 @@ export function handleExtMessage(message: ExtToUiMessage): void {
       handlePlaybackUpdate(message.playback);
       pomodoroState = message.pomodoro;
       pomodoroRemainingSec = message.pomodoro.phaseDurationSec;
+      // 初回同期時、既にポモドーロが動いていればそちらのタブを開いた状態にします
+      // （以降のタブ選択はユーザー操作を優先し、再同期のたびには上書きしません）。
+      if (!timerTabAutoSelected) {
+        timerTabAutoSelected = true;
+        if (message.pomodoro.runState !== 'stopped') {
+          timerTab = 'pomodoro';
+        }
+      }
       requestRender();
       break;
     case 'ext:playbackState':
@@ -255,15 +299,15 @@ export function handleExtMessage(message: ExtToUiMessage): void {
     case 'ext:pomodoroTick': {
       pomodoroState = message.pomodoro;
       pomodoroRemainingSec = message.remainingSec;
-      // status テキストだけを差し替え、全面 render() は避けます。
-      // これはパネル表示中に毎秒発火するため、DOM を丸ごと再構築すると
-      // カスタムコード入力中の編集内容が飛んだり、ちらつきが目立ったりします。
+      // DOM 直接パッチのみ行い、全面 render() は避けます。これは毎秒発火するため、
+      // DOM を丸ごと再構築するとちらつきや編集中断が起きます。「タイマー」セクションが
+      // スリープ表示中（ポモドーロがバックグラウンドで動作中）は対象要素が存在せず、
+      // その場合は何もしません — 該当タブに切り替わった時点で最新の state から描画されます。
       const statusEl = document.getElementById('pomodoro-status');
       if (statusEl) {
         statusEl.textContent = formatPomodoroStatus();
-      } else {
-        requestRender();
       }
+      updateTimerSeekbar('pomodoro-timer-seekbar', message.remainingSec, formatRemaining(message.remainingSec));
       break;
     }
     case 'ext:fileSelected':

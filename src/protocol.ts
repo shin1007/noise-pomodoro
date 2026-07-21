@@ -145,7 +145,8 @@ export type UiToExtMessage =
   | { type: 'ui:pomodoroStart' }
   | { type: 'ui:pomodoroPause' }
   | { type: 'ui:pomodoroReset' }
-  | { type: 'ui:pomodoroSkipPhase' };
+  | { type: 'ui:pomodoroSkipPhase' }
+  | { type: 'ui:pomodoroSetRemaining'; remainingSec: number };
 
 // ---- extension から UI へ ----
 export type ExtToUiMessage =

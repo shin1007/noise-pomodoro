@@ -94,34 +94,43 @@ body {
 
 .header-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  align-items: stretch;
+  gap: 10px;
   margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  background: var(--vscode-editorWidget-background, var(--vscode-button-secondaryBackground));
 }
 
-.app-title {
-  margin: 0;
-  font-size: 15px;
+.current-preset-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
   flex: 1;
+  min-width: 0;
 }
 
-.wave-symbol {
-  font-size: 16px;
-  opacity: 0.8;
+.current-preset-name,
+.current-preset-info .preset-setting-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .play-icon-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  aspect-ratio: 1 / 1;
+  height: auto;
   border-radius: 50%;
   border: 1px solid var(--vscode-widget-border, transparent);
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 
@@ -147,12 +156,6 @@ body {
 .label-text {
   font-size: 12px;
   opacity: 0.85;
-}
-
-.timer-values {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .value-with-stepper {
@@ -182,6 +185,88 @@ body {
 
 .step-button:hover {
   background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.timer-guard-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.phase-config {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 4px;
+}
+
+.phase-config h4 {
+  margin: 0 0 6px;
+  font-size: 12px;
+}
+
+.phase-config label {
+  display: block;
+  font-size: 12px;
+  margin: 6px 0;
+}
+
+.timer-seekbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0 10px;
+}
+
+.timer-seekbar-label {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-seekbar-slider {
+  width: 100%;
+}
+
+.icon-button {
+  border: 1px solid var(--vscode-widget-border, transparent);
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  line-height: 1;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.icon-button:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.pomodoro-toggle-button {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.pomodoro-toggle-button.is-on {
+  background: #e5484d;
+  color: #fff;
+  border-color: #e5484d;
 }
 
 .status-pill {

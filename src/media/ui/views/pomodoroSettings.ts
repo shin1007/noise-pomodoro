@@ -1,6 +1,6 @@
 import type { PhaseConfig, WhiteNoiseSettings } from '../../../protocol';
 import { button, el } from '../dom';
-import { formatPomodoroStatus, pomodoroState, post, updatePomodoroConfig } from '../state';
+import { closePomodoroSettings, updatePomodoroConfig } from '../state';
 
 function renderCheckboxLabel(checked: boolean, text: string, onChange: (checked: boolean) => void, trailing?: HTMLElement): HTMLLabelElement {
   const checkbox = el('input');
@@ -58,19 +58,21 @@ function renderPhaseConfigEditor(container: HTMLElement, s: WhiteNoiseSettings, 
   container.appendChild(section);
 }
 
-export function renderPomodoroSection(app: HTMLElement, s: WhiteNoiseSettings): void {
-  app.appendChild(el('h3', { text: 'ポモドーロタイマー' }));
-  app.appendChild(el('div', { className: 'status-line', id: 'pomodoro-status', text: formatPomodoroStatus() }));
+/** ポモドーロの集中/休憩フェーズ詳細設定です。タイマーセクションの ⚙ 設定ボタンから開くモーダルとして表示します。 */
+export function renderPomodoroSettingsModal(app: HTMLElement, s: WhiteNoiseSettings): void {
+  const body = el('div', { className: 'modal-body' });
+  renderPhaseConfigEditor(body, s, 'focus', s.pomodoro.focus, '集中時間');
+  renderPhaseConfigEditor(body, s, 'break', s.pomodoro.break, '休憩時間');
 
-  app.appendChild(
-    el('div', { className: 'preset-list' }, [
-      button(pomodoroState.runState === 'paused' ? '再開' : '開始', 'preset-button', () => post({ type: 'ui:pomodoroStart' })),
-      button('一時停止', 'preset-button', () => post({ type: 'ui:pomodoroPause' })),
-      button('リセット', 'preset-button', () => post({ type: 'ui:pomodoroReset' })),
-      button('次のフェーズへ', 'preset-button', () => post({ type: 'ui:pomodoroSkipPhase' })),
-    ]),
-  );
+  const header = el('div', { className: 'modal-header' }, [el('h2', { text: 'ポモドーロ設定' }), button('×', 'close-modal', closePomodoroSettings)]);
+  const modal = el('div', { className: 'modal-content' }, [header, body]);
+  modal.addEventListener('click', (event) => event.stopPropagation());
 
-  renderPhaseConfigEditor(app, s, 'focus', s.pomodoro.focus, '集中時間');
-  renderPhaseConfigEditor(app, s, 'break', s.pomodoro.break, '休憩時間');
+  const overlay = el('div', { className: 'modal-overlay' }, [modal]);
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) {
+      closePomodoroSettings();
+    }
+  });
+  app.appendChild(overlay);
 }
