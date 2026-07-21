@@ -458,11 +458,16 @@ body {
   gap: 6px;
 }
 
-.preset-description-input {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
+.preset-name-icon-row {
+  display: flex;
+  gap: 6px;
   margin-top: 8px;
+}
+
+.preset-icon-input,
+.preset-name-input,
+.preset-description-input {
+  box-sizing: border-box;
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border: 1px solid var(--vscode-input-border, transparent);
@@ -470,6 +475,23 @@ body {
   padding: 4px 6px;
   font-family: inherit;
   font-size: 12px;
+}
+
+.preset-icon-input {
+  width: 48px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.preset-name-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.preset-description-input {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
   resize: vertical;
 }
 

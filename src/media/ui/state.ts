@@ -70,14 +70,16 @@ export function closePomodoroSettings(): void {
   requestRender();
 }
 
-// ヘッダーのプリセット選択欄が指す「適用先」のプリセットIDと、その説明文の下書きです。
+// ヘッダーのプリセット選択欄が指す「適用先」のプリセットIDと、名前・アイコン・説明文の下書きです。
 // 背景音/ビートを個別に調整すると lastUsed.activePresetId は null に戻ってしまう
 // （＝プリセットと完全一致でなくなったことを示す）ため、"どのプリセットへ保存するか" は
 // activePresetId とは別にここで保持し続けます（選び直すまで維持）。
 export let selectedPresetId: string | null = null;
+export let presetNameDraft = '';
+export let presetIconDraft = '';
 export let presetDescriptionDraft = '';
 let presetSelectionInitialized = false;
-let refreshDescriptionOnNextSync = false;
+let refreshDraftOnNextSync = false;
 
 /** リスニングタイマーの分数を [0, 60] に収めて更新します（外部から直接代入できない export let の setter）。 */
 export function setListenTimerMinutes(minutes: number): number {
@@ -182,22 +184,34 @@ function handlePlaybackUpdate(next: PlaybackState): void {
 /** ヘッダーのドロップダウンでプリセットを選ぶと、その設定を即座に現在の設定へ反映します。 */
 export function selectPreset(s: WhiteNoiseSettings, preset: AmbientPreset): void {
   selectedPresetId = preset.id;
+  presetNameDraft = preset.name;
+  presetIconDraft = preset.icon ?? '';
   presetDescriptionDraft = preset.description ?? '';
   post({ type: 'ui:applyPreset', presetId: preset.id });
   applyPresetLocally(s, preset);
   requestRender();
 }
 
+export function setPresetNameDraft(value: string): void {
+  presetNameDraft = value;
+}
+
+export function setPresetIconDraft(value: string): void {
+  presetIconDraft = value;
+}
+
 export function setPresetDescriptionDraft(value: string): void {
   presetDescriptionDraft = value;
 }
 
-/** 「現在の設定をプリセットに適用」ボタン。選択中プリセットへ、現在の背景音/ビート/音量と説明文の下書きを上書き保存します。 */
+/** 「現在の設定をプリセットに適用」ボタン。選択中プリセットへ、現在の背景音/ビート/音量と名前・アイコン・説明文の下書きを上書き保存します。 */
 export function applyCurrentSettingsToPreset(s: WhiteNoiseSettings): void {
   const target = s.ambientPresets.find((preset) => preset.id === selectedPresetId);
   if (!target) return;
   const updated: AmbientPreset = {
     ...target,
+    name: presetNameDraft,
+    icon: presetIconDraft || undefined,
     description: presetDescriptionDraft,
     background: s.lastUsed.background,
     beat: { ...s.lastUsed.beat },
@@ -216,7 +230,7 @@ export function applyCurrentSettingsToPreset(s: WhiteNoiseSettings): void {
 }
 
 export function resetAmbientPresets(): void {
-  refreshDescriptionOnNextSync = true;
+  refreshDraftOnNextSync = true;
   post({ type: 'ui:resetPresets' });
 }
 
@@ -272,12 +286,16 @@ export function handleExtMessage(message: ExtToUiMessage): void {
         presetSelectionInitialized = true;
         const initial = message.settings.ambientPresets.find((preset) => preset.id === message.settings.lastUsed.activePresetId) ?? message.settings.ambientPresets[0];
         selectedPresetId = initial?.id ?? null;
+        presetNameDraft = initial?.name ?? '';
+        presetIconDraft = initial?.icon ?? '';
         presetDescriptionDraft = initial?.description ?? '';
       }
-      // プリセットのリセット直後は、選択中プリセットの説明文を最新の既定値に合わせ直します。
-      if (refreshDescriptionOnNextSync) {
-        refreshDescriptionOnNextSync = false;
+      // プリセットのリセット直後は、選択中プリセットの下書きを最新の既定値に合わせ直します。
+      if (refreshDraftOnNextSync) {
+        refreshDraftOnNextSync = false;
         const target = message.settings.ambientPresets.find((preset) => preset.id === selectedPresetId);
+        presetNameDraft = target?.name ?? '';
+        presetIconDraft = target?.icon ?? '';
         presetDescriptionDraft = target?.description ?? '';
       }
       requestRender();
