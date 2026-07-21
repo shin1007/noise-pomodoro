@@ -139,6 +139,11 @@ body {
   outline-offset: 2px;
 }
 
+.preset-select option {
+  background-color: var(--vscode-dropdown-background, var(--vscode-editorWidget-background));
+  color: var(--vscode-dropdown-foreground, var(--vscode-foreground));
+}
+
 .play-icon-button {
   display: flex;
   align-items: center;
