@@ -2,6 +2,7 @@ import type { PhaseConfig, WhiteNoiseSettings } from '../../../protocol';
 import { button, el } from '../dom';
 import { strings } from '../i18n';
 import { closePomodoroSettings, post, updatePomodoroConfig } from '../state';
+import { TIMER_SEEKBAR_MAX_MINUTES } from './timerSeekbar';
 
 function renderCheckboxLabel(checked: boolean, text: string, onChange: (checked: boolean) => void, trailing?: HTMLElement): HTMLLabelElement {
   const checkbox = el('input');
@@ -19,11 +20,19 @@ function renderCheckboxLabel(checked: boolean, text: string, onChange: (checked:
 function renderPhaseConfigEditor(container: HTMLElement, s: WhiteNoiseSettings, phaseKey: 'focus' | 'break', config: PhaseConfig, label: string): void {
   const section = el('div', { className: 'phase-config' }, [el('h4', { text: label })]);
 
+  // ステータスバーの表示幅（statusBar.ts の MAX_LABEL_LEN）は残り時間が "MM:SS" の5文字に
+  // 収まる前提で計算しているため、分数は他のタイマー入力と同じ TIMER_SEEKBAR_MAX_MINUTES
+  // （60分、mm が2桁に収まる上限）で揃えます。
   const durationInput = el('input');
   durationInput.type = 'number';
   durationInput.min = '1';
+  durationInput.max = String(TIMER_SEEKBAR_MAX_MINUTES);
   durationInput.value = String(Math.round(config.durationSec / 60));
-  durationInput.addEventListener('change', () => updatePomodoroConfig((c) => (c[phaseKey].durationSec = Math.max(1, Number(durationInput.value)) * 60)));
+  durationInput.addEventListener('change', () => {
+    const clamped = Math.min(TIMER_SEEKBAR_MAX_MINUTES, Math.max(1, Number(durationInput.value)));
+    durationInput.value = String(clamped);
+    updatePomodoroConfig((c) => (c[phaseKey].durationSec = clamped * 60));
+  });
   section.appendChild(el('label', { text: strings.pomodoroSettings.timeMinutesLabel }, [durationInput]));
 
   const presetSelect = el('select');
