@@ -144,7 +144,8 @@ export function formatRemaining(totalSeconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-function clearListenTimer(): void {
+/** ポモドーロ開始時など、スリープタイマーのカウントダウンを明示的に打ち切りたい箇所から呼びます。 */
+export function clearListenTimer(): void {
   if (listenTimerHandle !== undefined) {
     window.clearInterval(listenTimerHandle);
     listenTimerHandle = undefined;
@@ -179,8 +180,25 @@ function startListenTimerIfNeeded(): void {
   }, 1000);
 }
 
+/** スリープタイマー側（ダイヤル操作）からポモドーロの実行中/一時停止中を打ち切って制御を
+ * 取り戻します。既に再生中の場合は、待っていても next.status の 'playing' 遷移がもう
+ * 発生しない（既に 'playing' のまま）ため startListenTimerIfNeeded() をここで直接呼び、
+ * その場でカウントダウンを始めます。 */
+export function reclaimListenTimerFromPomodoro(): void {
+  if (pomodoroState.runState === 'stopped') {
+    return;
+  }
+  post({ type: 'ui:pomodoroReset' });
+  if (playback.status === 'playing') {
+    startListenTimerIfNeeded();
+  }
+}
+
 function handlePlaybackUpdate(next: PlaybackState): void {
-  if (next.status === 'playing' && previousPlaybackStatus !== 'playing') {
+  // ポモドーロ実行中/一時停止中は、プリセット切り替えに伴う再生開始でスリープタイマーを
+  // 巻き込んで自動開始させません（そのまま放置すると、ポモドーロのフェーズ途中で
+  // スリープタイマーの残り0到達→ui:stop が飛び、集中/休憩中の音声が意図せず止まります）。
+  if (next.status === 'playing' && previousPlaybackStatus !== 'playing' && pomodoroState.runState === 'stopped') {
     startListenTimerIfNeeded();
   } else if (next.status !== 'playing') {
     clearListenTimer();

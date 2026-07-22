@@ -63,7 +63,6 @@ export interface UiStrings {
     heading: string;
     none: string;
     minutesUnit: (n: number) => string;
-    sleepGuardNote: string;
     start: string;
     resume: string;
     pause: string;

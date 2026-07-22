@@ -64,7 +64,6 @@ const strings: UiStrings = {
     heading: 'Timer',
     none: 'None',
     minutesUnit: (n) => `${n} min`,
-    sleepGuardNote: 'Unavailable while Pomodoro is running. Reset it to use this.',
     start: 'Start',
     resume: 'Resume',
     pause: 'Pause',

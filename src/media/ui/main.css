@@ -219,12 +219,6 @@ body {
   pointer-events: none;
 }
 
-.timer-guard-note {
-  margin: 4px 0 0;
-  font-size: 11px;
-  opacity: 0.7;
-}
-
 .phase-config {
   margin-top: 8px;
   padding: 6px 10px;

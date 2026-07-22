@@ -2,6 +2,7 @@ import type { WhiteNoiseSettings } from '../../../protocol';
 import { button, el } from '../dom';
 import { strings } from '../i18n';
 import {
+  clearListenTimer,
   formatRemaining,
   listenTimerMinutes,
   listenTimerRemainingSec,
@@ -9,6 +10,7 @@ import {
   pomodoroRemainingSec,
   pomodoroState,
   post,
+  reclaimListenTimerFromPomodoro,
   setListenTimerMinutes,
   setListenTimerRemainingSec,
   setPomodoroRemainingMinutes,
@@ -23,8 +25,16 @@ function renderSleepTab(container: HTMLElement): void {
   const counting = listenTimerRemainingSec !== null;
 
   const seekbar = createTimerSeekbar('sleep-timer-seekbar', {
-    interactive: !pomodoroActive,
+    interactive: true,
     onSetMinutes: (minutes) => {
+      // ポモドーロ実行中/一時停止中にダイヤルを動かしたら、そちらを打ち切ってスリープタイマーに
+      // 制御を戻します（ポモドーロの開始ボタン側の取り扱いと対称）。
+      if (pomodoroActive) {
+        setListenTimerMinutes(minutes);
+        updateTimerSeekbar('sleep-timer-seekbar', minutes * 60, minutes === 0 ? strings.timer.none : strings.timer.minutesUnit(minutes));
+        reclaimListenTimerFromPomodoro();
+        return;
+      }
       if (counting) {
         setListenTimerRemainingSec(minutes * 60);
       } else {
@@ -38,10 +48,6 @@ function renderSleepTab(container: HTMLElement): void {
   const initialRemainingSec = counting ? (listenTimerRemainingSec as number) : listenTimerMinutes * 60;
   const initialLabel = counting ? formatRemaining(listenTimerRemainingSec as number) : listenTimerMinutes === 0 ? strings.timer.none : strings.timer.minutesUnit(listenTimerMinutes);
   updateTimerSeekbar('sleep-timer-seekbar', initialRemainingSec, initialLabel);
-
-  if (pomodoroActive) {
-    container.appendChild(el('p', { className: 'timer-guard-note', text: strings.timer.sleepGuardNote }));
-  }
 }
 
 function renderPomodoroTab(container: HTMLElement, s: WhiteNoiseSettings): void {
@@ -52,8 +58,13 @@ function renderPomodoroTab(container: HTMLElement, s: WhiteNoiseSettings): void 
   const phaseConfig = s.pomodoro[activePhase];
 
   const seekbar = createTimerSeekbar('pomodoro-timer-seekbar', {
-    interactive: !sleepActive,
+    interactive: true,
     onSetMinutes: (minutes) => {
+      // スリープタイマー動作中にダイヤルを動かしたら、そちらを打ち切ります
+      // （スリープタブ側のダイヤルの取り扱いと対称）。
+      if (sleepActive) {
+        clearListenTimer();
+      }
       if (isCounting) {
         setPomodoroRemainingMinutes(minutes);
       } else {
@@ -74,7 +85,7 @@ function renderPomodoroTab(container: HTMLElement, s: WhiteNoiseSettings): void 
  * 実行中/一時停止中かは文言ではなくボタンの色（is-active）で示します。一時停止・開始ボタンは
  * id を振っており、毎秒の ext:pomodoroTick では state.ts がこの id を直接 DOM パッチして
  * is-active を切り替えます（この関数自体は tick では呼ばれないため）。 */
-function createPomodoroTransportButtons(sleepActive: boolean): HTMLElement[] {
+function createPomodoroTransportButtons(): HTMLElement[] {
   const isRunning = pomodoroState.runState === 'running';
   const isPaused = pomodoroState.runState === 'paused';
 
@@ -85,24 +96,29 @@ function createPomodoroTransportButtons(sleepActive: boolean): HTMLElement[] {
   pauseButton.id = 'pomodoro-pause-button';
   pauseButton.title = strings.timer.pause;
 
-  const startButton = button('▶', 'transport-button' + (isRunning ? ' is-active' : ''), () => post({ type: 'ui:pomodoroStart' }));
+  // スリープタイマー動作中に開始を押した場合は、そのままではフェーズ開始で
+  // スリープタイマー側が生き残ってしまう（handlePlaybackUpdate 参照）ため、先に打ち切ります。
+  const startButton = button('▶', 'transport-button' + (isRunning ? ' is-active' : ''), () => {
+    if (listenTimerRemainingSec !== null) {
+      clearListenTimer();
+    }
+    post({ type: 'ui:pomodoroStart' });
+  });
   startButton.id = 'pomodoro-start-button';
   startButton.title = isPaused ? strings.timer.resume : strings.timer.start;
 
   const skipButton = button('▶▶', 'transport-button', () => post({ type: 'ui:pomodoroSkipPhase' }));
   skipButton.title = strings.timer.skipPhase;
 
-  const buttons = [resetButton, pauseButton, startButton, skipButton];
-  for (const btn of buttons) {
-    btn.disabled = sleepActive;
-  }
-  return buttons;
+  return [resetButton, pauseButton, startButton, skipButton];
 }
 
 /** リスニング（スリープ）タイマーとポモドーロタイマーを1つの「タイマー」セクションにまとめ、
  * 共通のシークバーで表示・操作します。ON/OFF ボタンは表示モードの切替のみで、
  * ポモドーロ自体の開始/一時停止/リセットは別ボタンで行います。両方が同時に再生を制御すると
- * 分かりづらくなるため、一方が動作中はもう一方のシークバー操作・開始操作を無効化します。 */
+ * 分かりづらくなるため排他的に運用しますが、操作をブロックするのではなく、片方を操作したら
+ * もう片方を打ち切って制御を明け渡す方式にしています（createPomodoroTransportButtons の
+ * 開始ボタン、renderSleepTab/renderPomodoroTab 各ダイヤルの onSetMinutes を参照）。 */
 export function renderTimerSection(app: HTMLElement, s: WhiteNoiseSettings): void {
   const pomodoroToggle = button(
     strings.timer.pomodoroToggle(timerTab === 'pomodoro'),
@@ -110,8 +126,7 @@ export function renderTimerSection(app: HTMLElement, s: WhiteNoiseSettings): voi
     () => setTimerTab(timerTab === 'pomodoro' ? 'sleep' : 'pomodoro'),
   );
   const settingsButton = button('⚙', 'icon-button', openPomodoroSettings);
-  const sleepActive = listenTimerRemainingSec !== null;
-  const actions = timerTab === 'pomodoro' ? [...createPomodoroTransportButtons(sleepActive), pomodoroToggle, settingsButton] : [pomodoroToggle, settingsButton];
+  const actions = timerTab === 'pomodoro' ? [...createPomodoroTransportButtons(), pomodoroToggle, settingsButton] : [pomodoroToggle, settingsButton];
   const headerRow = el('div', { className: 'label-row' }, [
     el('h3', { text: strings.timer.heading }),
     el('div', { className: 'timer-header-actions' }, actions),

@@ -64,7 +64,6 @@ const strings: UiStrings = {
     heading: 'タイマー',
     none: 'なし',
     minutesUnit: (n) => `${n}分`,
-    sleepGuardNote: 'ポモドーロ実行中は使用できません。リセットすると使えます。',
     start: '開始',
     resume: '再開',
     pause: '一時停止',

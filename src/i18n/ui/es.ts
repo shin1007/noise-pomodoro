@@ -64,7 +64,6 @@ const strings: UiStrings = {
     heading: 'Temporizador',
     none: 'Ninguno',
     minutesUnit: (n) => `${n} min`,
-    sleepGuardNote: 'No disponible mientras el Pomodoro está en marcha. Reinícielo para usarlo.',
     start: 'Iniciar',
     resume: 'Reanudar',
     pause: 'Pausar',
