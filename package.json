@@ -5,6 +5,7 @@
   "version": "0.0.1",
   "publisher": "shin1007",
   "private": true,
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/shin1007/white-noise"

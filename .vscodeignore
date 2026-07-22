@@ -1,9 +1,16 @@
 .vscode/**
 .claude/**
+.github/**
 src/**
+out/**
+scripts/**
 tsconfig*.json
 esbuild.js
+eslint.config.mjs
 .gitignore
+.nvmrc
+AGENTS.md
+CLAUDE.md
 **/.git/**
 **/node_modules/**
-*.map
+**/*.map
