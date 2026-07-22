@@ -28,6 +28,10 @@ let audioContext: AudioContext | undefined;
 let masterGain: GainNode | undefined;
 let backgroundGain: GainNode | undefined;
 let beatGain: GainNode | undefined;
+// フェーズ終了チャイム等の one-shot 再生専用のゲインです。masterGain は非再生時に 0 のため、
+// そこへ繋ぐと「再生していない間はチャイムが無音になる」問題が起きます。destination へ直結し、
+// 常に OUTPUT_GAIN_SCALE を保つことで、アンビエント再生の有無に関係なく一定音量で鳴らせます。
+let oneShotGain: GainNode | undefined;
 
 // 背景音レイヤー（ノイズ / ファイル / カスタムコード。排他的に 1 つだけ有効）
 type BackgroundKind = 'off' | 'noise' | 'file' | 'custom';
@@ -86,6 +90,9 @@ async function ensureAudioContext(): Promise<AudioContext> {
   beatGain = audioContext.createGain();
   beatGain.gain.value = 0;
   beatGain.connect(masterGain);
+  oneShotGain = audioContext.createGain();
+  oneShotGain.gain.value = OUTPUT_GAIN_SCALE;
+  oneShotGain.connect(audioContext.destination);
   return audioContext;
 }
 
@@ -295,7 +302,8 @@ const ONE_SHOT_MAX_MS = 3000;
 
 /**
  * フェーズ終了時の短い通知音を、背景音・ビートの再生とは別ノードで鳴らします。
- * それらの再生を止めずに重ねられるよう、masterGain へ直接つなぎます。
+ * それらの再生を止めずに重ねられるよう、また非再生時（masterGainが0）でも鳴るよう、
+ * masterGainではなく専用のoneShotGainへ直接つなぎます。
  */
 async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'eng:playOneShot' }>['preset']): Promise<void> {
   const ctx = await ensureRunningAudioContext();
@@ -311,7 +319,7 @@ async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'en
       const gain = ctx.createGain();
       gain.gain.value = safeGain(preset.volume);
       source.connect(gain);
-      gain.connect(masterGain!);
+      gain.connect(oneShotGain!);
       source.onended = () => {
         source.disconnect();
         gain.disconnect();
@@ -325,7 +333,7 @@ async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'en
 
   if (preset.mode === 'custom' && preset.custom) {
     const node = new AudioWorkletNode(ctx, 'custom-code-processor', { outputChannelCount: [2] });
-    node.connect(masterGain!);
+    node.connect(oneShotGain!);
     node.port.postMessage({ type: 'setCustomCode', code: preset.custom.code, params: preset.custom.params } satisfies WorkletInMessage);
     node.port.postMessage({ type: 'setVolume', value: preset.volume } satisfies WorkletInMessage);
     setTimeout(() => node.disconnect(), ONE_SHOT_MAX_MS);
@@ -334,7 +342,7 @@ async function handlePlayOneShot(preset: Extract<ExtToEngineMessage, { type: 'en
 
   if (preset.mode === 'procedural' && preset.procedural) {
     const node = new AudioWorkletNode(ctx, 'noise-processor', { outputChannelCount: [2] });
-    node.connect(masterGain!);
+    node.connect(oneShotGain!);
     node.port.postMessage({ type: 'setNoiseType', value: preset.procedural.algorithm } satisfies WorkletInMessage);
     node.port.postMessage({ type: 'setVolume', value: preset.volume } satisfies WorkletInMessage);
     setTimeout(() => node.disconnect(), ONE_SHOT_MAX_MS);
