@@ -4,7 +4,6 @@ import { AppWebview, type AppWebviewCallbacks } from './ui/AppWebview';
 import { SettingsStore } from './state/SettingsStore';
 import { readAudioFile, selectAudioFile } from './fileAccess/audioFileLoader';
 import { PomodoroTimer } from './pomodoro/PomodoroTimer';
-import { formatMMSS, formatProgressBar } from './pomodoro/format';
 import { runPhaseEndScript } from './scriptRunner/PhaseEndScriptRunner';
 import { buildDefaultAmbientPresets } from './state/settings';
 import { backgroundLabel } from './state/labels';
@@ -239,7 +238,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (state.phase === 'idle') {
         refreshIdleStatusBar();
       } else {
-        statusBar.renderPomodoro(formatProgressBar(remainingSec, totalSec), formatMMSS(remainingSec), state.phase, state.runState === 'paused');
+        statusBar.renderPomodoro(remainingSec, totalSec, state.phase, state.runState === 'paused');
       }
       if (AppWebview.isVisible()) {
         AppWebview.postMessage({ type: 'ext:pomodoroTick', pomodoro: state, remainingSec, totalSec });
