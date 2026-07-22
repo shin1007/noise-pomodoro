@@ -35,3 +35,14 @@ export function mixLevels(beatEnabled: boolean): { backgroundLevel: number; beat
     beatLevel: beatEnabled ? BEAT_GAIN : 0,
   };
 }
+
+/** カスタムコードの params オブジェクトの浅い等価比較です。engineClient.ts が、実際には
+ * 値が変わっていないのに setCustomCode を再送して worklet 側の再コンパイル
+ * （音切れの原因になりうる）を招かないよう、変化検知に使います。 */
+export function paramsEqual(a: Record<string, number>, b: Record<string, number>): boolean {
+  const aKeys = Object.keys(a);
+  if (aKeys.length !== Object.keys(b).length) {
+    return false;
+  }
+  return aKeys.every((key) => a[key] === b[key]);
+}

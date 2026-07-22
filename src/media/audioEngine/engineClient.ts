@@ -1,7 +1,7 @@
-import type { EngineToExtMessage, ExtToEngineMessage, ResolvedLiveMix } from '../../protocol';
+import type { EngineToExtMessage, ExtToEngineMessage, NoiseType, ResolvedLiveMix } from '../../protocol';
 import type { WorkletInMessage, WorkletOutMessage } from '../../audioEngine/worklets/messages';
 import { getVsCodeApi } from '../vscodeApi';
-import { beatParamKey, mixLevels, safeFrequency, safeGain } from './mixParams';
+import { beatParamKey, mixLevels, paramsEqual, safeFrequency, safeGain } from './mixParams';
 
 declare global {
   interface Window {
@@ -31,6 +31,13 @@ let backgroundKind: BackgroundKind = 'off';
 let fileSource: AudioBufferSourceNode | undefined;
 let fileGain: GainNode | undefined;
 let currentFileFsPath: string | undefined;
+// noise/custom は eng:play のたびに再送しがちなため（音量変更だけでも呼ばれる）、
+// 直近に実際に送った値を覚えておき、変化がなければ再送しません。特にカスタムコードは
+// worklet 側で new Function による再コンパイルが走るため、無関係な操作のたびに再送すると
+// リアルタイムオーディオスレッドの処理落ち（音切れ）を招きます。
+let currentNoiseType: NoiseType | undefined;
+let currentCustomCode: string | undefined;
+let currentCustomParams: Record<string, number> | undefined;
 
 // ビートレイヤー（バイノーラル / アイソクロニック。背景音とは独立して有効・無効を切り替えます）
 let beatNode: AudioWorkletNode | undefined;
@@ -42,6 +49,13 @@ let beatNode: AudioWorkletNode | undefined;
 // 常に「最後の操作」だけがオーディオグラフに反映されるようにします。
 let mixEpoch = 0;
 
+// OS 側の音声セッション中断・出力デバイス切り替え・スリープ復帰などで AudioContext が
+// こちらの意図と無関係に suspended へ落ちることがあります。何もしないと次にユーザーが
+// 何か操作するまで無音のままになるため、「今は再生中であるべきか」をここで覚えておき、
+// statechange で自動的に resume() します（初回の resume() と違い、一度でもユーザー操作
+// 経由の resume() に成功していればこの自動再開はブラウザにブロックされません）。
+let shouldBePlaying = false;
+
 /**
  * AudioContext の生成と AudioWorklet の読み込みだけを行います。resume() は呼びません。
  * ブラウザの自動再生ポリシーでは、ユーザー操作を伴わずに呼んだ resume() は永久に
@@ -52,6 +66,11 @@ async function ensureAudioContext(): Promise<AudioContext> {
     return audioContext;
   }
   audioContext = new AudioContext();
+  audioContext.addEventListener('statechange', () => {
+    if (audioContext?.state === 'suspended' && shouldBePlaying) {
+      void audioContext.resume();
+    }
+  });
   await audioContext.audioWorklet.addModule(window.__WORKLET_URI__);
   masterGain = audioContext.createGain();
   masterGain.gain.value = 0;
@@ -104,6 +123,9 @@ function teardownBackground(): void {
   fileGain?.disconnect();
   fileGain = undefined;
   currentFileFsPath = undefined;
+  currentNoiseType = undefined;
+  currentCustomCode = undefined;
+  currentCustomParams = undefined;
   backgroundKind = 'off';
 }
 
@@ -177,9 +199,17 @@ async function applyBackground(mix: ResolvedLiveMix, epoch: number): Promise<voi
   }
 
   if (targetKind === 'noise' && background.noiseType) {
-    postToNode(backgroundNode, { type: 'setNoiseType', value: background.noiseType });
+    if (background.noiseType !== currentNoiseType) {
+      postToNode(backgroundNode, { type: 'setNoiseType', value: background.noiseType });
+      currentNoiseType = background.noiseType;
+    }
   } else if (targetKind === 'custom' && background.custom) {
-    postToNode(backgroundNode, { type: 'setCustomCode', code: background.custom.code, params: background.custom.params });
+    const { code, params } = background.custom;
+    if (code !== currentCustomCode || !currentCustomParams || !paramsEqual(params, currentCustomParams)) {
+      postToNode(backgroundNode, { type: 'setCustomCode', code, params });
+      currentCustomCode = code;
+      currentCustomParams = params;
+    }
   }
 }
 
@@ -235,12 +265,14 @@ async function applyMix(mix: ResolvedLiveMix): Promise<void> {
   beatGain!.gain.setTargetAtTime(beatLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
   masterGain!.gain.setTargetAtTime(safeGain(mix.volume), ctx.currentTime, GAIN_SMOOTHING_SEC);
 
+  shouldBePlaying = true;
   post({ type: 'eng:playbackStarted' });
 }
 
 async function handleStop(): Promise<void> {
   // 世代番号を進め、デコード待ちなどで宙に浮いている applyMix があれば無効化します。
   const epoch = ++mixEpoch;
+  shouldBePlaying = false;
   if (audioContext && masterGain) {
     masterGain.gain.setTargetAtTime(0, audioContext.currentTime, GAIN_SMOOTHING_SEC);
     await new Promise((resolve) => setTimeout(resolve, 100));

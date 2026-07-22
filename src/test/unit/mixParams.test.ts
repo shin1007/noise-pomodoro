@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { BEAT_GAIN, beatParamKey, mixLevels, safeFrequency, safeGain } from '../../media/audioEngine/mixParams';
+import { BEAT_GAIN, beatParamKey, mixLevels, paramsEqual, safeFrequency, safeGain } from '../../media/audioEngine/mixParams';
 
 describe('safeGain', () => {
   it('passes through valid gains', () => {
@@ -50,5 +50,27 @@ describe('mixLevels', () => {
     const { backgroundLevel, beatLevel } = mixLevels(true);
     assert.strictEqual(backgroundLevel, 0.86);
     assert.strictEqual(beatLevel, BEAT_GAIN);
+  });
+});
+
+describe('paramsEqual', () => {
+  it('treats identical params as equal', () => {
+    assert.strictEqual(paramsEqual({ a: 1, b: 2 }, { a: 1, b: 2 }), true);
+  });
+
+  it('treats empty params objects as equal', () => {
+    assert.strictEqual(paramsEqual({}, {}), true);
+  });
+
+  it('detects a changed value', () => {
+    assert.strictEqual(paramsEqual({ a: 1 }, { a: 2 }), false);
+  });
+
+  it('detects a different key count', () => {
+    assert.strictEqual(paramsEqual({ a: 1 }, { a: 1, b: 2 }), false);
+  });
+
+  it('detects a different key name at the same count', () => {
+    assert.strictEqual(paramsEqual({ a: 1 }, { b: 1 }), false);
   });
 });
