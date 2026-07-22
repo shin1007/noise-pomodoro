@@ -102,7 +102,28 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   }
 
+  function playbackEqual(a: PlaybackState, b: PlaybackState): boolean {
+    return (
+      a.status === b.status &&
+      a.backgroundActive === b.backgroundActive &&
+      a.beatActive === b.beatActive &&
+      a.beatMode === b.beatMode &&
+      a.activePresetId === b.activePresetId &&
+      a.currentTimeSec === b.currentTimeSec
+    );
+  }
+
+  /**
+   * onPlaybackStarted は eng:play が成功するたびに毎回呼ばれます（音量スライダーのドラッグ中の
+   * ように、実際には再生状態が変わらない操作でも eng:play は都度発生するため）。ここで実質的な
+   * 変化がない呼び出しを弾かないと、webview 側の ext:playbackState → requestRender() が
+   * 操作のたびに全面再描画を引き起こし、タイマーのシークバーなど tick でしか値を復元しない
+   * 要素が意図せずリセットされて見えてしまいます。
+   */
   function updatePlayback(next: PlaybackState): void {
+    if (playbackEqual(playback, next)) {
+      return;
+    }
     playback = next;
     if (next.status !== 'playing') {
       // 停止経路によっては webview からの ui:listenTimerTick(null) が届く前に

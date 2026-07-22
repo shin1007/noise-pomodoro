@@ -117,12 +117,14 @@ export function renderTimerSection(app: HTMLElement, s: WhiteNoiseSettings): voi
     el('div', { className: 'timer-header-actions' }, actions),
   ]);
   const section = el('div', { className: 'section' }, [headerRow]);
+  // シークバー生成直後に updateTimerSeekbar() で初期値を書き込むため（id 経由の
+  // document.getElementById）、中身を詰める前に app へ接続します。未接続のまま
+  // 詰めると getElementById が見つけられず、初期値の書き込みが無音で失敗します。
+  app.appendChild(section);
 
   if (timerTab === 'sleep') {
     renderSleepTab(section);
   } else {
     renderPomodoroTab(section, s);
   }
-
-  app.appendChild(section);
 }
