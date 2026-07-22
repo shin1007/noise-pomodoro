@@ -20,11 +20,6 @@ const strings: UiStrings = {
     blue: '蓝噪音',
     violet: '紫噪音',
   },
-  pomodoroPhase: {
-    focus: '专注中',
-    break: '休息中',
-    idle: '已停止',
-  },
   background: {
     heading: '背景音',
     fileMode: '📁 音频文件',
@@ -71,7 +66,6 @@ const strings: UiStrings = {
     none: '无',
     minutesUnit: (n) => `${n} 分钟`,
     sleepGuardNote: '番茄钟运行时无法使用。重置后即可使用。',
-    pomodoroGuardNote: '睡眠定时器运行时无法使用。',
     start: '开始',
     resume: '继续',
     pause: '暂停',

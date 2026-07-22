@@ -18,11 +18,6 @@ export interface UiStrings {
   };
   brainwaveBands: Record<BandKey, string>;
   noiseTypes: Record<NoiseType, string>;
-  pomodoroPhase: {
-    focus: string;
-    break: string;
-    idle: string;
-  };
   background: {
     heading: string;
     fileMode: string;
@@ -69,7 +64,6 @@ export interface UiStrings {
     none: string;
     minutesUnit: (n: number) => string;
     sleepGuardNote: string;
-    pomodoroGuardNote: string;
     start: string;
     resume: string;
     pause: string;

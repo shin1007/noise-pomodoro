@@ -277,6 +277,34 @@ body {
   background: var(--vscode-button-secondaryHoverBackground);
 }
 
+.transport-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--vscode-widget-border, transparent);
+  border-radius: 4px;
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.transport-button:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.transport-button.is-active {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.transport-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .chime-preview-row {
   display: inline-flex;
   align-items: center;

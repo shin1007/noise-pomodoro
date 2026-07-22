@@ -1,8 +1,8 @@
 // スリープタイマー／ポモドーロタイマー共通の「シークバー」ウィジェットです。残り時間を
 // スライダーの位置とラベルで表示し、ドラッグで値を設定できます（両方が同じウィジェットを
 // 使い回すのは見た目・操作感を統一するためです）。毎秒の tick 更新は render() を経由せず
-// updateTimerSeekbar() で直接 DOM を書き換えます（state.ts の #pomodoro-status と同じ、
-// ちらつき回避のための直接パッチ方式）。
+// updateTimerSeekbar() で直接 DOM を書き換えます（state.ts の patchPomodoroTransportButtons()
+// と同じ、ちらつき回避のための直接パッチ方式）。
 
 import { el, rangeSlider } from '../dom';
 

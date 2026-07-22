@@ -19,11 +19,6 @@ const strings: UiStrings = {
     blue: 'ブルー',
     violet: 'ヴァイオレット',
   },
-  pomodoroPhase: {
-    focus: '集中中',
-    break: '休憩中',
-    idle: '停止中',
-  },
   background: {
     heading: '背景音',
     fileMode: '📁 音声ファイル',
@@ -70,7 +65,6 @@ const strings: UiStrings = {
     none: 'なし',
     minutesUnit: (n) => `${n}分`,
     sleepGuardNote: 'ポモドーロ実行中は使用できません。リセットすると使えます。',
-    pomodoroGuardNote: 'スリープタイマー実行中は使用できません。',
     start: '開始',
     resume: '再開',
     pause: '一時停止',

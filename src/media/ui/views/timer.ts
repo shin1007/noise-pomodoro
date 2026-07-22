@@ -2,7 +2,6 @@ import type { WhiteNoiseSettings } from '../../../protocol';
 import { button, el } from '../dom';
 import { strings } from '../i18n';
 import {
-  formatPomodoroStatus,
   formatRemaining,
   listenTimerMinutes,
   listenTimerRemainingSec,
@@ -68,23 +67,36 @@ function renderPomodoroTab(container: HTMLElement, s: WhiteNoiseSettings): void 
   const initialRemainingSec = isCounting ? pomodoroRemainingSec : phaseConfig.durationSec;
   const initialLabel = isCounting ? formatRemaining(pomodoroRemainingSec) : strings.timer.minutesUnit(Math.round(phaseConfig.durationSec / 60));
   updateTimerSeekbar('pomodoro-timer-seekbar', initialRemainingSec, initialLabel);
+}
 
-  container.appendChild(el('div', { className: 'status-line', id: 'pomodoro-status', text: formatPomodoroStatus() }));
+/** 開始/一時停止/リセット/次のフェーズの再生系ボタンです。タイマーセクションのヘッダー行、
+ * ポモドーロON/OFFトグルの左側に置くため、タブ切り替えとは独立してここで組み立てます。
+ * 実行中/一時停止中かは文言ではなくボタンの色（is-active）で示します。一時停止・開始ボタンは
+ * id を振っており、毎秒の ext:pomodoroTick では state.ts がこの id を直接 DOM パッチして
+ * is-active を切り替えます（この関数自体は tick では呼ばれないため）。 */
+function createPomodoroTransportButtons(sleepActive: boolean): HTMLElement[] {
+  const isRunning = pomodoroState.runState === 'running';
+  const isPaused = pomodoroState.runState === 'paused';
 
-  const startButton = button(pomodoroState.runState === 'paused' ? strings.timer.resume : strings.timer.start, 'preset-button', () => post({ type: 'ui:pomodoroStart' }));
-  startButton.disabled = sleepActive;
+  const resetButton = button('◀◀', 'transport-button', () => post({ type: 'ui:pomodoroReset' }));
+  resetButton.title = strings.timer.reset;
 
-  container.appendChild(
-    el('div', { className: 'preset-list' }, [
-      startButton,
-      button(strings.timer.pause, 'preset-button', () => post({ type: 'ui:pomodoroPause' })),
-      button(strings.timer.reset, 'preset-button', () => post({ type: 'ui:pomodoroReset' })),
-      button(strings.timer.skipPhase, 'preset-button', () => post({ type: 'ui:pomodoroSkipPhase' })),
-    ]),
-  );
-  if (sleepActive) {
-    container.appendChild(el('p', { className: 'timer-guard-note', text: strings.timer.pomodoroGuardNote }));
+  const pauseButton = button('■■', 'transport-button' + (isPaused ? ' is-active' : ''), () => post({ type: 'ui:pomodoroPause' }));
+  pauseButton.id = 'pomodoro-pause-button';
+  pauseButton.title = strings.timer.pause;
+
+  const startButton = button('▶', 'transport-button' + (isRunning ? ' is-active' : ''), () => post({ type: 'ui:pomodoroStart' }));
+  startButton.id = 'pomodoro-start-button';
+  startButton.title = isPaused ? strings.timer.resume : strings.timer.start;
+
+  const skipButton = button('▶▶', 'transport-button', () => post({ type: 'ui:pomodoroSkipPhase' }));
+  skipButton.title = strings.timer.skipPhase;
+
+  const buttons = [resetButton, pauseButton, startButton, skipButton];
+  for (const btn of buttons) {
+    btn.disabled = sleepActive;
   }
+  return buttons;
 }
 
 /** リスニング（スリープ）タイマーとポモドーロタイマーを1つの「タイマー」セクションにまとめ、
@@ -98,9 +110,11 @@ export function renderTimerSection(app: HTMLElement, s: WhiteNoiseSettings): voi
     () => setTimerTab(timerTab === 'pomodoro' ? 'sleep' : 'pomodoro'),
   );
   const settingsButton = button('⚙', 'icon-button', openPomodoroSettings);
+  const sleepActive = listenTimerRemainingSec !== null;
+  const actions = timerTab === 'pomodoro' ? [...createPomodoroTransportButtons(sleepActive), pomodoroToggle, settingsButton] : [pomodoroToggle, settingsButton];
   const headerRow = el('div', { className: 'label-row' }, [
     el('h3', { text: strings.timer.heading }),
-    el('div', { className: 'timer-header-actions' }, [pomodoroToggle, settingsButton]),
+    el('div', { className: 'timer-header-actions' }, actions),
   ]);
   const section = el('div', { className: 'section' }, [headerRow]);
 

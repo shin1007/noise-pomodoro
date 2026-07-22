@@ -267,11 +267,21 @@ export function setPomodoroRemainingMinutes(minutes: number): void {
   post({ type: 'ui:pomodoroSetRemaining', remainingSec });
 }
 
-export function formatPomodoroStatus(): string {
-  const mm = Math.floor(pomodoroRemainingSec / 60).toString().padStart(2, '0');
-  const ss = Math.floor(pomodoroRemainingSec % 60).toString().padStart(2, '0');
-  const phaseLabel = pomodoroState.phase === 'focus' ? strings.pomodoroPhase.focus : pomodoroState.phase === 'break' ? strings.pomodoroPhase.break : strings.pomodoroPhase.idle;
-  return pomodoroState.phase === 'idle' ? phaseLabel : `${phaseLabel} (${pomodoroState.runState}) ${mm}:${ss}`;
+/** 実行中/一時停止中かをヘッダーの再生系ボタンの色（is-active）に反映します。文言ではなく
+ * ボタンの色で示す方針のため、ext:pomodoroTick のたびに直接 DOM パッチします（他の tick パッチ
+ * と同様、毎秒の全面 render() を避けるためです）。「タイマー」セクションがスリープ表示中
+ * （ポモドーロがバックグラウンドで動作中）は対象要素が存在せず、その場合は何もしません —
+ * 該当タブに切り替わった時点で最新の state から描画されます。 */
+function patchPomodoroTransportButtons(runState: PomodoroState['runState']): void {
+  const pauseEl = document.getElementById('pomodoro-pause-button');
+  if (pauseEl) {
+    pauseEl.classList.toggle('is-active', runState === 'paused');
+  }
+  const startEl = document.getElementById('pomodoro-start-button') as HTMLButtonElement | null;
+  if (startEl) {
+    startEl.classList.toggle('is-active', runState === 'running');
+    startEl.title = runState === 'paused' ? strings.timer.resume : strings.timer.start;
+  }
 }
 
 // ---- extension からのメッセージ受信 --------------------------------------------
@@ -318,13 +328,8 @@ export function handleExtMessage(message: ExtToUiMessage): void {
       pomodoroState = message.pomodoro;
       pomodoroRemainingSec = message.remainingSec;
       // DOM 直接パッチのみ行い、全面 render() は避けます。これは毎秒発火するため、
-      // DOM を丸ごと再構築するとちらつきや編集中断が起きます。「タイマー」セクションが
-      // スリープ表示中（ポモドーロがバックグラウンドで動作中）は対象要素が存在せず、
-      // その場合は何もしません — 該当タブに切り替わった時点で最新の state から描画されます。
-      const statusEl = document.getElementById('pomodoro-status');
-      if (statusEl) {
-        statusEl.textContent = formatPomodoroStatus();
-      }
+      // DOM を丸ごと再構築するとちらつきや編集中断が起きます。
+      patchPomodoroTransportButtons(message.pomodoro.runState);
       updateTimerSeekbar('pomodoro-timer-seekbar', message.remainingSec, formatRemaining(message.remainingSec));
       break;
     }

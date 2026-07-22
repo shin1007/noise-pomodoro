@@ -19,11 +19,6 @@ const strings: UiStrings = {
     blue: 'Bleu',
     violet: 'Violet',
   },
-  pomodoroPhase: {
-    focus: 'Concentration',
-    break: 'Pause',
-    idle: 'Arrêté',
-  },
   background: {
     heading: 'Son de fond',
     fileMode: '📁 Fichier audio',
@@ -70,7 +65,6 @@ const strings: UiStrings = {
     none: 'Aucun',
     minutesUnit: (n) => `${n} min`,
     sleepGuardNote: 'Indisponible pendant l’exécution du Pomodoro. Réinitialisez-le pour l’utiliser.',
-    pomodoroGuardNote: 'Indisponible pendant l’exécution de la minuterie de sommeil.',
     start: 'Démarrer',
     resume: 'Reprendre',
     pause: 'Pause',
