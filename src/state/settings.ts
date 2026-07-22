@@ -1,6 +1,7 @@
 import type { AmbientPreset, PhaseConfig, PresetConfig, WhiteNoiseSettings } from '../protocol';
 import type { Locale } from '../i18n/locale';
 import { DEFAULT_SETTINGS_STRINGS } from '../i18n/defaultSettings';
+import { MAX_MASTER_VOLUME } from '../utils/volume';
 
 export const SETTINGS_SCHEMA_VERSION = 2;
 export const SETTINGS_KEY = 'whiteNoise.settings';
@@ -28,7 +29,7 @@ export function buildDefaultAmbientPresets(locale: Locale): AmbientPreset[] {
       description: t.focus.description,
       background: { mode: 'procedural', noiseType: 'brown' },
       beat: { enabled: true, baseFrequency: 417, beatFrequency: BEAT_FREQUENCY_BY_BAND.beta },
-      volume: 0.55,
+      volume: MAX_MASTER_VOLUME,
     },
     {
       id: 'creative',
@@ -37,7 +38,7 @@ export function buildDefaultAmbientPresets(locale: Locale): AmbientPreset[] {
       description: t.creative.description,
       background: { mode: 'procedural', noiseType: 'pink' },
       beat: { enabled: true, baseFrequency: 528, beatFrequency: BEAT_FREQUENCY_BY_BAND.alpha },
-      volume: 0.55,
+      volume: MAX_MASTER_VOLUME,
     },
     {
       id: 'study',
@@ -46,7 +47,7 @@ export function buildDefaultAmbientPresets(locale: Locale): AmbientPreset[] {
       description: t.study.description,
       background: { mode: 'procedural', noiseType: 'white' },
       beat: { enabled: true, baseFrequency: 741, beatFrequency: BEAT_FREQUENCY_BY_BAND.gamma },
-      volume: 0.55,
+      volume: MAX_MASTER_VOLUME,
     },
     {
       id: 'meditation',
@@ -55,7 +56,7 @@ export function buildDefaultAmbientPresets(locale: Locale): AmbientPreset[] {
       description: t.meditation.description,
       background: { mode: 'off' },
       beat: { enabled: true, baseFrequency: 396, beatFrequency: BEAT_FREQUENCY_BY_BAND.theta },
-      volume: 0.5,
+      volume: MAX_MASTER_VOLUME,
     },
     {
       id: 'sleep',
@@ -64,7 +65,7 @@ export function buildDefaultAmbientPresets(locale: Locale): AmbientPreset[] {
       description: t.sleep.description,
       background: { mode: 'procedural', noiseType: 'brown' },
       beat: { enabled: true, baseFrequency: 174, beatFrequency: BEAT_FREQUENCY_BY_BAND.delta },
-      volume: 0.5,
+      volume: MAX_MASTER_VOLUME,
     },
     {
       id: 'file1',
@@ -73,7 +74,7 @@ export function buildDefaultAmbientPresets(locale: Locale): AmbientPreset[] {
       description: t.file1.description,
       background: { mode: 'file' },
       beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
-      volume: 0.7,
+      volume: MAX_MASTER_VOLUME,
     },
     {
       id: 'custom1',
@@ -82,7 +83,7 @@ export function buildDefaultAmbientPresets(locale: Locale): AmbientPreset[] {
       description: t.custom1.description,
       background: { mode: 'custom', custom: { code: 'return Math.sin(2 * Math.PI * 220 * t);', params: {} } },
       beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
-      volume: 0.5,
+      volume: MAX_MASTER_VOLUME,
     },
   ];
 }
@@ -156,7 +157,7 @@ export function buildDefaultSettings(locale: Locale): WhiteNoiseSettings {
       background: { mode: 'procedural', noiseType: 'white' },
       beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
       beatMode: 'binaural',
-      masterVolume: 0.6,
+      masterVolume: MAX_MASTER_VOLUME,
       activePresetId: null,
     },
   };
