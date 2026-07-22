@@ -1,5 +1,6 @@
 import './main.css';
 import type { ExtToUiMessage } from '../../protocol';
+import { strings } from './i18n';
 import { handleExtMessage, pomodoroSettingsOpen, post, settings, setRenderCallback } from './state';
 import { renderHeader, renderPresetEditor } from './views/header';
 import { renderVolumeControl } from './views/controls';
@@ -16,7 +17,8 @@ function render(): void {
     return;
   }
   if (!settings) {
-    app.innerHTML = '<p class="loading">Loading…</p>';
+    app.innerHTML = '';
+    app.appendChild(Object.assign(document.createElement('p'), { className: 'loading', textContent: strings.loading }));
     return;
   }
   const s = settings;

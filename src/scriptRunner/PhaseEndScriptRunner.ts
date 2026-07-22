@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { HostStrings } from '../i18n/host';
 import { logger } from '../utils/logger';
 
 /**
@@ -14,17 +15,17 @@ import { logger } from '../utils/logger';
  * コードはユーザー自身の GUI から保存された globalState の設定だけを使い、ワークスペース内
  * ファイルは参照しないため、リモートリポジトリ起因の RCE ベクターにはなりません。
  */
-export function runPhaseEndScript(code: string, phase: 'focus' | 'break'): void {
+export function runPhaseEndScript(code: string, phase: 'focus' | 'break', strings: HostStrings): void {
   // 信頼していないワークスペースでは、extension host で任意コードを実行するこの機能を止めます。
   // scriptSource 自体は globalState 由来（ワークスペース外）ですが、この機能は executeCommand で
   // 任意コマンドを起動できるため、信頼済みのワークスペースに限定するのが安全です。
   if (!vscode.workspace.isTrusted) {
-    void vscode.window.showWarningMessage('White Noise: フェーズ終了スクリプトは、信頼済みのワークスペースでのみ実行されます。現在のワークスペースは信頼されていないためスキップしました。');
+    void vscode.window.showWarningMessage(`White Noise: ${strings.scriptRunner.workspaceNotTrusted}`);
     return;
   }
   const enabled = vscode.workspace.getConfiguration('whiteNoise').get<boolean>('enablePhaseEndScripts', false);
   if (!enabled) {
-    void vscode.window.showWarningMessage('White Noise: フェーズ終了スクリプトは設定されていますが無効です。実行するには設定で "whiteNoise.enablePhaseEndScripts" を有効にしてください。');
+    void vscode.window.showWarningMessage(`White Noise: ${strings.scriptRunner.featureDisabled}`);
     return;
   }
 
@@ -40,7 +41,7 @@ export function runPhaseEndScript(code: string, phase: 'focus' | 'break'): void 
     const fn = new Function('vscode', 'phase', code) as (vscodeApi: typeof api, phaseName: string) => void;
     fn(api, phase);
   } catch (err) {
-    const message = `フェーズ終了スクリプトのエラー: ${(err as Error).message}`;
+    const message = strings.scriptRunner.scriptError((err as Error).message);
     logger.error(message);
     void vscode.window.showErrorMessage(`White Noise: ${message}`);
   }

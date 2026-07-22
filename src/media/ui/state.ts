@@ -15,6 +15,7 @@ import type {
   WhiteNoiseSettings,
 } from '../../protocol';
 import { getVsCodeApi } from '../vscodeApi';
+import { strings } from './i18n';
 import { TIMER_SEEKBAR_MAX_MINUTES, updateTimerSeekbar } from './views/timerSeekbar';
 
 // 共有 vscode API（同一 Webview 内の engineClient.ts と acquireVsCodeApi() を共用）。
@@ -269,7 +270,7 @@ export function setPomodoroRemainingMinutes(minutes: number): void {
 export function formatPomodoroStatus(): string {
   const mm = Math.floor(pomodoroRemainingSec / 60).toString().padStart(2, '0');
   const ss = Math.floor(pomodoroRemainingSec % 60).toString().padStart(2, '0');
-  const phaseLabel = pomodoroState.phase === 'focus' ? '集中中' : pomodoroState.phase === 'break' ? '休憩中' : '停止中';
+  const phaseLabel = pomodoroState.phase === 'focus' ? strings.pomodoroPhase.focus : pomodoroState.phase === 'break' ? strings.pomodoroPhase.break : strings.pomodoroPhase.idle;
   return pomodoroState.phase === 'idle' ? phaseLabel : `${phaseLabel} (${pomodoroState.runState}) ${mm}:${ss}`;
 }
 

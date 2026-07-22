@@ -1,5 +1,6 @@
 import type { WhiteNoiseSettings } from '../../../protocol';
 import { button, el } from '../dom';
+import { strings } from '../i18n';
 import {
   formatPomodoroStatus,
   formatRemaining,
@@ -29,18 +30,18 @@ function renderSleepTab(container: HTMLElement): void {
         setListenTimerRemainingSec(minutes * 60);
       } else {
         setListenTimerMinutes(minutes);
-        updateTimerSeekbar('sleep-timer-seekbar', minutes * 60, minutes === 0 ? 'なし' : `${minutes}分`);
+        updateTimerSeekbar('sleep-timer-seekbar', minutes * 60, minutes === 0 ? strings.timer.none : strings.timer.minutesUnit(minutes));
       }
     },
   });
   container.appendChild(seekbar);
 
   const initialRemainingSec = counting ? (listenTimerRemainingSec as number) : listenTimerMinutes * 60;
-  const initialLabel = counting ? formatRemaining(listenTimerRemainingSec as number) : listenTimerMinutes === 0 ? 'なし' : `${listenTimerMinutes}分`;
+  const initialLabel = counting ? formatRemaining(listenTimerRemainingSec as number) : listenTimerMinutes === 0 ? strings.timer.none : strings.timer.minutesUnit(listenTimerMinutes);
   updateTimerSeekbar('sleep-timer-seekbar', initialRemainingSec, initialLabel);
 
   if (pomodoroActive) {
-    container.appendChild(el('p', { className: 'timer-guard-note', text: 'ポモドーロ実行中は使用できません。リセットすると使えます。' }));
+    container.appendChild(el('p', { className: 'timer-guard-note', text: strings.timer.sleepGuardNote }));
   }
 }
 
@@ -58,31 +59,31 @@ function renderPomodoroTab(container: HTMLElement, s: WhiteNoiseSettings): void 
         setPomodoroRemainingMinutes(minutes);
       } else {
         updatePomodoroConfig((c) => (c[activePhase].durationSec = minutes * 60));
-        updateTimerSeekbar('pomodoro-timer-seekbar', minutes * 60, `${minutes}分`);
+        updateTimerSeekbar('pomodoro-timer-seekbar', minutes * 60, strings.timer.minutesUnit(minutes));
       }
     },
   });
   container.appendChild(seekbar);
 
   const initialRemainingSec = isCounting ? pomodoroRemainingSec : phaseConfig.durationSec;
-  const initialLabel = isCounting ? formatRemaining(pomodoroRemainingSec) : `${Math.round(phaseConfig.durationSec / 60)}分`;
+  const initialLabel = isCounting ? formatRemaining(pomodoroRemainingSec) : strings.timer.minutesUnit(Math.round(phaseConfig.durationSec / 60));
   updateTimerSeekbar('pomodoro-timer-seekbar', initialRemainingSec, initialLabel);
 
   container.appendChild(el('div', { className: 'status-line', id: 'pomodoro-status', text: formatPomodoroStatus() }));
 
-  const startButton = button(pomodoroState.runState === 'paused' ? '再開' : '開始', 'preset-button', () => post({ type: 'ui:pomodoroStart' }));
+  const startButton = button(pomodoroState.runState === 'paused' ? strings.timer.resume : strings.timer.start, 'preset-button', () => post({ type: 'ui:pomodoroStart' }));
   startButton.disabled = sleepActive;
 
   container.appendChild(
     el('div', { className: 'preset-list' }, [
       startButton,
-      button('一時停止', 'preset-button', () => post({ type: 'ui:pomodoroPause' })),
-      button('リセット', 'preset-button', () => post({ type: 'ui:pomodoroReset' })),
-      button('次のフェーズへ', 'preset-button', () => post({ type: 'ui:pomodoroSkipPhase' })),
+      button(strings.timer.pause, 'preset-button', () => post({ type: 'ui:pomodoroPause' })),
+      button(strings.timer.reset, 'preset-button', () => post({ type: 'ui:pomodoroReset' })),
+      button(strings.timer.skipPhase, 'preset-button', () => post({ type: 'ui:pomodoroSkipPhase' })),
     ]),
   );
   if (sleepActive) {
-    container.appendChild(el('p', { className: 'timer-guard-note', text: 'スリープタイマー実行中は使用できません。' }));
+    container.appendChild(el('p', { className: 'timer-guard-note', text: strings.timer.pomodoroGuardNote }));
   }
 }
 
@@ -92,13 +93,13 @@ function renderPomodoroTab(container: HTMLElement, s: WhiteNoiseSettings): void 
  * 分かりづらくなるため、一方が動作中はもう一方のシークバー操作・開始操作を無効化します。 */
 export function renderTimerSection(app: HTMLElement, s: WhiteNoiseSettings): void {
   const pomodoroToggle = button(
-    `ポモドーロ ${timerTab === 'pomodoro' ? 'ON' : 'OFF'}`,
+    strings.timer.pomodoroToggle(timerTab === 'pomodoro'),
     'pomodoro-toggle-button' + (timerTab === 'pomodoro' ? ' is-on' : ''),
     () => setTimerTab(timerTab === 'pomodoro' ? 'sleep' : 'pomodoro'),
   );
   const settingsButton = button('⚙', 'icon-button', openPomodoroSettings);
   const headerRow = el('div', { className: 'label-row' }, [
-    el('h3', { text: 'タイマー' }),
+    el('h3', { text: strings.timer.heading }),
     el('div', { className: 'timer-header-actions' }, [pomodoroToggle, settingsButton]),
   ]);
   const section = el('div', { className: 'section' }, [headerRow]);

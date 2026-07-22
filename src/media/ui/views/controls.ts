@@ -1,5 +1,6 @@
 import type { WhiteNoiseSettings } from '../../../protocol';
 import { el, labelRow, rangeSlider, stepper } from '../dom';
+import { strings } from '../i18n';
 import { post } from '../state';
 
 export function renderVolumeControl(app: HTMLElement, s: WhiteNoiseSettings): void {
@@ -15,5 +16,5 @@ export function renderVolumeControl(app: HTMLElement, s: WhiteNoiseSettings): vo
     post({ type: 'ui:setMasterVolume', value: clamped / 100 });
   }
 
-  app.appendChild(el('div', { className: 'control-group' }, [labelRow('音量', stepperGroup), slider]));
+  app.appendChild(el('div', { className: 'control-group' }, [labelRow(strings.controls.volumeLabel, stepperGroup), slider]));
 }

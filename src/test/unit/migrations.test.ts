@@ -1,36 +1,41 @@
 import * as assert from 'assert';
 import { migrateSettings } from '../../state/migrations';
-import { DEFAULT_SETTINGS, SETTINGS_SCHEMA_VERSION } from '../../state/settings';
+import { buildDefaultSettings, SETTINGS_SCHEMA_VERSION } from '../../state/settings';
+
+const DEFAULT_SETTINGS = buildDefaultSettings('ja');
 
 describe('migrateSettings', () => {
   it('returns defaults when raw is undefined', () => {
-    assert.deepStrictEqual(migrateSettings(undefined), DEFAULT_SETTINGS);
+    assert.deepStrictEqual(migrateSettings(undefined, 'ja'), DEFAULT_SETTINGS);
   });
 
   it('returns defaults when raw is not an object', () => {
-    assert.deepStrictEqual(migrateSettings('nonsense'), DEFAULT_SETTINGS);
-    assert.deepStrictEqual(migrateSettings(42), DEFAULT_SETTINGS);
+    assert.deepStrictEqual(migrateSettings('nonsense', 'ja'), DEFAULT_SETTINGS);
+    assert.deepStrictEqual(migrateSettings(42, 'ja'), DEFAULT_SETTINGS);
   });
 
   it('returns defaults when schemaVersion does not match', () => {
-    const result = migrateSettings({ schemaVersion: 999, ambientPresets: [], chimePresets: [], pomodoro: {}, lastUsed: {} });
+    const result = migrateSettings({ schemaVersion: 999, ambientPresets: [], chimePresets: [], pomodoro: {}, lastUsed: {} }, 'ja');
     assert.deepStrictEqual(result, DEFAULT_SETTINGS);
   });
 
   it('returns defaults when required fields are missing or malformed', () => {
-    assert.deepStrictEqual(migrateSettings({ schemaVersion: SETTINGS_SCHEMA_VERSION }), DEFAULT_SETTINGS);
+    assert.deepStrictEqual(migrateSettings({ schemaVersion: SETTINGS_SCHEMA_VERSION }, 'ja'), DEFAULT_SETTINGS);
     assert.deepStrictEqual(
-      migrateSettings({ schemaVersion: SETTINGS_SCHEMA_VERSION, ambientPresets: 'not-an-array', chimePresets: [], pomodoro: {}, lastUsed: {} }),
+      migrateSettings({ schemaVersion: SETTINGS_SCHEMA_VERSION, ambientPresets: 'not-an-array', chimePresets: [], pomodoro: {}, lastUsed: {} }, 'ja'),
       DEFAULT_SETTINGS,
     );
     assert.deepStrictEqual(
-      migrateSettings({
-        schemaVersion: SETTINGS_SCHEMA_VERSION,
-        ambientPresets: [],
-        chimePresets: [],
-        pomodoro: {},
-        lastUsed: { background: { mode: 'off' } },
-      }),
+      migrateSettings(
+        {
+          schemaVersion: SETTINGS_SCHEMA_VERSION,
+          ambientPresets: [],
+          chimePresets: [],
+          pomodoro: {},
+          lastUsed: { background: { mode: 'off' } },
+        },
+        'ja',
+      ),
       DEFAULT_SETTINGS,
     );
   });
@@ -49,12 +54,9 @@ describe('migrateSettings', () => {
       },
     };
     // null 要素、必須フィールド欠落は、実行時の TypeError を招くため既定値へ戻します。
-    assert.deepStrictEqual(migrateSettings({ ...base, ambientPresets: [null] }), DEFAULT_SETTINGS);
-    assert.deepStrictEqual(migrateSettings({ ...base, ambientPresets: [{ id: 'x', name: 'x' }] }), DEFAULT_SETTINGS);
-    assert.deepStrictEqual(
-      migrateSettings({ ...base, chimePresets: [{ id: 'c', name: 'c' }] }),
-      DEFAULT_SETTINGS,
-    );
+    assert.deepStrictEqual(migrateSettings({ ...base, ambientPresets: [null] }, 'ja'), DEFAULT_SETTINGS);
+    assert.deepStrictEqual(migrateSettings({ ...base, ambientPresets: [{ id: 'x', name: 'x' }] }, 'ja'), DEFAULT_SETTINGS);
+    assert.deepStrictEqual(migrateSettings({ ...base, chimePresets: [{ id: 'c', name: 'c' }] }, 'ja'), DEFAULT_SETTINGS);
   });
 
   it('returns defaults when pomodoro phase config or beatMode is malformed', () => {
@@ -66,11 +68,14 @@ describe('migrateSettings', () => {
       activePresetId: null,
     };
     assert.deepStrictEqual(
-      migrateSettings({ schemaVersion: SETTINGS_SCHEMA_VERSION, ambientPresets: [], chimePresets: [], pomodoro: { focus: {}, break: {} }, lastUsed }),
+      migrateSettings({ schemaVersion: SETTINGS_SCHEMA_VERSION, ambientPresets: [], chimePresets: [], pomodoro: { focus: {}, break: {} }, lastUsed }, 'ja'),
       DEFAULT_SETTINGS,
     );
     assert.deepStrictEqual(
-      migrateSettings({ schemaVersion: SETTINGS_SCHEMA_VERSION, ambientPresets: [], chimePresets: [], pomodoro: DEFAULT_SETTINGS.pomodoro, lastUsed: { ...lastUsed, beatMode: 'bogus' } }),
+      migrateSettings(
+        { schemaVersion: SETTINGS_SCHEMA_VERSION, ambientPresets: [], chimePresets: [], pomodoro: DEFAULT_SETTINGS.pomodoro, lastUsed: { ...lastUsed, beatMode: 'bogus' } },
+        'ja',
+      ),
       DEFAULT_SETTINGS,
     );
   });
@@ -89,7 +94,7 @@ describe('migrateSettings', () => {
         activePresetId: null,
       },
     };
-    assert.deepStrictEqual(migrateSettings(valid), valid);
+    assert.deepStrictEqual(migrateSettings(valid, 'ja'), valid);
   });
 
   it('passes through settings that match the current schema', () => {
@@ -106,6 +111,6 @@ describe('migrateSettings', () => {
         activePresetId: null,
       },
     };
-    assert.deepStrictEqual(migrateSettings(valid), valid);
+    assert.deepStrictEqual(migrateSettings(valid, 'ja'), valid);
   });
 });

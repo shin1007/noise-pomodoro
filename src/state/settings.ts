@@ -1,4 +1,6 @@
 import type { AmbientPreset, PhaseConfig, PresetConfig, WhiteNoiseSettings } from '../protocol';
+import type { Locale } from '../i18n/locale';
+import { DEFAULT_SETTINGS_STRINGS } from '../i18n/defaultSettings';
 
 export const SETTINGS_SCHEMA_VERSION = 2;
 export const SETTINGS_KEY = 'whiteNoise.settings';
@@ -13,134 +15,149 @@ export const BEAT_FREQUENCY_BY_BAND = {
   gamma: 36,
 } as const;
 
-export const DEFAULT_AMBIENT_PRESETS: AmbientPreset[] = [
-  {
-    id: 'focus',
-    name: '集中',
-    icon: '🧠',
-    description: 'ブラウンノイズにベータ波帯のビートを重ね、集中作業に向けた組み合わせです。',
-    background: { mode: 'procedural', noiseType: 'brown' },
-    beat: { enabled: true, baseFrequency: 417, beatFrequency: BEAT_FREQUENCY_BY_BAND.beta },
-    volume: 0.55,
-  },
-  {
-    id: 'creative',
-    name: '発想',
-    icon: '🎨',
-    description: 'ピンクノイズにアルファ波帯のビートを重ね、リラックスした発想向けの組み合わせです。',
-    background: { mode: 'procedural', noiseType: 'pink' },
-    beat: { enabled: true, baseFrequency: 528, beatFrequency: BEAT_FREQUENCY_BY_BAND.alpha },
-    volume: 0.55,
-  },
-  {
-    id: 'study',
-    name: '学習',
-    icon: '📚',
-    description: 'ホワイトノイズにガンマ波帯のビートを重ね、学習や読解に向けた組み合わせです。',
-    background: { mode: 'procedural', noiseType: 'white' },
-    beat: { enabled: true, baseFrequency: 741, beatFrequency: BEAT_FREQUENCY_BY_BAND.gamma },
-    volume: 0.55,
-  },
-  {
-    id: 'meditation',
-    name: '瞑想',
-    icon: '🧘',
-    description: '背景音なしでシータ波帯のビートのみを流す、瞑想向けの組み合わせです。',
-    background: { mode: 'off' },
-    beat: { enabled: true, baseFrequency: 396, beatFrequency: BEAT_FREQUENCY_BY_BAND.theta },
-    volume: 0.5,
-  },
-  {
-    id: 'sleep',
-    name: '睡眠',
-    icon: '😴',
-    description: 'ブラウンノイズにデルタ波帯のビートを重ね、深い休息に向けた組み合わせです。',
-    background: { mode: 'procedural', noiseType: 'brown' },
-    beat: { enabled: true, baseFrequency: 174, beatFrequency: BEAT_FREQUENCY_BY_BAND.delta },
-    volume: 0.5,
-  },
-  {
-    id: 'file1',
-    name: 'カスタム音声ファイル',
-    icon: '📁',
-    description: '任意の音声ファイルを背景音として再生します。ビートは別途オンにできます。',
-    background: { mode: 'file' },
-    beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
-    volume: 0.7,
-  },
-  {
-    id: 'custom1',
-    name: 'カスタムコード',
-    icon: '🧪',
-    description: '独自の波形コードを背景音として再生します。ビートは別途オンにできます。',
-    background: { mode: 'custom', custom: { code: 'return Math.sin(2 * Math.PI * 220 * t);', params: {} } },
-    beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
-    volume: 0.5,
-  },
-];
+// プリセット名・説明文はロケール依存のため、初回シード時にのみ使う文言を
+// src/i18n/defaultSettings から差し込みます。一度永続化された後はユーザーデータのため、
+// ロケールを変えても既存のプリセットは遡って翻訳し直しません。
+export function buildDefaultAmbientPresets(locale: Locale): AmbientPreset[] {
+  const t = DEFAULT_SETTINGS_STRINGS[locale].presets;
+  return [
+    {
+      id: 'focus',
+      name: t.focus.name,
+      icon: '🧠',
+      description: t.focus.description,
+      background: { mode: 'procedural', noiseType: 'brown' },
+      beat: { enabled: true, baseFrequency: 417, beatFrequency: BEAT_FREQUENCY_BY_BAND.beta },
+      volume: 0.55,
+    },
+    {
+      id: 'creative',
+      name: t.creative.name,
+      icon: '🎨',
+      description: t.creative.description,
+      background: { mode: 'procedural', noiseType: 'pink' },
+      beat: { enabled: true, baseFrequency: 528, beatFrequency: BEAT_FREQUENCY_BY_BAND.alpha },
+      volume: 0.55,
+    },
+    {
+      id: 'study',
+      name: t.study.name,
+      icon: '📚',
+      description: t.study.description,
+      background: { mode: 'procedural', noiseType: 'white' },
+      beat: { enabled: true, baseFrequency: 741, beatFrequency: BEAT_FREQUENCY_BY_BAND.gamma },
+      volume: 0.55,
+    },
+    {
+      id: 'meditation',
+      name: t.meditation.name,
+      icon: '🧘',
+      description: t.meditation.description,
+      background: { mode: 'off' },
+      beat: { enabled: true, baseFrequency: 396, beatFrequency: BEAT_FREQUENCY_BY_BAND.theta },
+      volume: 0.5,
+    },
+    {
+      id: 'sleep',
+      name: t.sleep.name,
+      icon: '😴',
+      description: t.sleep.description,
+      background: { mode: 'procedural', noiseType: 'brown' },
+      beat: { enabled: true, baseFrequency: 174, beatFrequency: BEAT_FREQUENCY_BY_BAND.delta },
+      volume: 0.5,
+    },
+    {
+      id: 'file1',
+      name: t.file1.name,
+      icon: '📁',
+      description: t.file1.description,
+      background: { mode: 'file' },
+      beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
+      volume: 0.7,
+    },
+    {
+      id: 'custom1',
+      name: t.custom1.name,
+      icon: '🧪',
+      description: t.custom1.description,
+      background: { mode: 'custom', custom: { code: 'return Math.sin(2 * Math.PI * 220 * t);', params: {} } },
+      beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
+      volume: 0.5,
+    },
+  ];
+}
 
 export const SOLFEGGIO_FREQUENCIES = [174, 285, 396, 417, 528, 639, 741, 852, 963] as const;
 
 // 終了時に鳴らす組み込みのワンショット音 3 種です。PhaseEndAction.soundPresetId は、
 // ユーザー自身のカスタムコードやファイルのプリセットなど、他の任意の chime preset id に
 // 差し替えられます。ここにあるのは「無難な初期値」であり、唯一の選択肢ではありません。
-export const CHIME_PRESETS: PresetConfig[] = [
-  {
-    id: 'chime-bell',
-    name: 'ベル',
-    icon: '🔔',
-    mode: 'custom',
-    volume: 0.7,
-    custom: { code: 'const decay = Math.exp(-t * 3); return Math.sin(2 * Math.PI * 880 * t) * decay;', params: {} },
-  },
-  {
-    id: 'chime-beep',
-    name: 'ビープ',
-    icon: '📟',
-    mode: 'custom',
-    volume: 0.7,
-    custom: {
-      code: 'const local = t % 0.3; const decay = Math.exp(-local * 25); return t < 0.6 ? Math.sin(2 * Math.PI * 1000 * t) * decay : 0;',
-      params: {},
+export function buildChimePresets(locale: Locale): PresetConfig[] {
+  const t = DEFAULT_SETTINGS_STRINGS[locale].chimes;
+  return [
+    {
+      id: 'chime-bell',
+      name: t.bell,
+      icon: '🔔',
+      mode: 'custom',
+      volume: 0.7,
+      custom: { code: 'const decay = Math.exp(-t * 3); return Math.sin(2 * Math.PI * 880 * t) * decay;', params: {} },
     },
-  },
-  {
-    id: 'chime-marimba',
-    name: 'マリンバ',
-    icon: '🎶',
-    mode: 'custom',
-    volume: 0.7,
-    custom: {
-      code: 'const decay = Math.exp(-t * 4); return (Math.sin(2 * Math.PI * 523 * t) + 0.5 * Math.sin(2 * Math.PI * 1046 * t)) * decay * 0.6;',
-      params: {},
+    {
+      id: 'chime-beep',
+      name: t.beep,
+      icon: '📟',
+      mode: 'custom',
+      volume: 0.7,
+      custom: {
+        code: 'const local = t % 0.3; const decay = Math.exp(-local * 25); return t < 0.6 ? Math.sin(2 * Math.PI * 1000 * t) * decay : 0;',
+        params: {},
+      },
     },
-  },
-];
+    {
+      id: 'chime-marimba',
+      name: t.marimba,
+      icon: '🎶',
+      mode: 'custom',
+      volume: 0.7,
+      custom: {
+        code: 'const decay = Math.exp(-t * 4); return (Math.sin(2 * Math.PI * 523 * t) + 0.5 * Math.sin(2 * Math.PI * 1046 * t)) * decay * 0.6;',
+        params: {},
+      },
+    },
+  ];
+}
 
-const DEFAULT_FOCUS_PHASE: PhaseConfig = {
-  durationSec: 25 * 60,
-  presetId: 'focus',
-  autoAdvance: true,
-  endAction: { showToast: true, toastMessage: '集中時間終了！休憩しましょう。', playSound: true, soundPresetId: 'chime-bell', runScript: false },
-};
+function buildDefaultFocusPhase(locale: Locale): PhaseConfig {
+  return {
+    durationSec: 25 * 60,
+    presetId: 'focus',
+    autoAdvance: true,
+    endAction: { showToast: true, toastMessage: DEFAULT_SETTINGS_STRINGS[locale].phaseEnd.focusToastMessage, playSound: true, soundPresetId: 'chime-bell', runScript: false },
+  };
+}
 
-const DEFAULT_BREAK_PHASE: PhaseConfig = {
-  durationSec: 5 * 60,
-  presetId: null,
-  autoAdvance: true,
-  endAction: { showToast: true, toastMessage: '休憩終了！集中を再開しましょう。', playSound: true, soundPresetId: 'chime-marimba', runScript: false },
-};
+function buildDefaultBreakPhase(locale: Locale): PhaseConfig {
+  return {
+    durationSec: 5 * 60,
+    presetId: null,
+    autoAdvance: true,
+    endAction: { showToast: true, toastMessage: DEFAULT_SETTINGS_STRINGS[locale].phaseEnd.breakToastMessage, playSound: true, soundPresetId: 'chime-marimba', runScript: false },
+  };
+}
 
-export const DEFAULT_SETTINGS: WhiteNoiseSettings = {
-  schemaVersion: SETTINGS_SCHEMA_VERSION,
-  ambientPresets: DEFAULT_AMBIENT_PRESETS,
-  chimePresets: CHIME_PRESETS,
-  pomodoro: { focus: DEFAULT_FOCUS_PHASE, break: DEFAULT_BREAK_PHASE },
-  lastUsed: {
-    background: { mode: 'procedural', noiseType: 'white' },
-    beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
-    beatMode: 'binaural',
-    masterVolume: 0.6,
-    activePresetId: null,
-  },
-};
+export function buildDefaultSettings(locale: Locale): WhiteNoiseSettings {
+  return {
+    schemaVersion: SETTINGS_SCHEMA_VERSION,
+    ambientPresets: buildDefaultAmbientPresets(locale),
+    chimePresets: buildChimePresets(locale),
+    pomodoro: { focus: buildDefaultFocusPhase(locale), break: buildDefaultBreakPhase(locale) },
+    lastUsed: {
+      background: { mode: 'procedural', noiseType: 'white' },
+      beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },
+      beatMode: 'binaural',
+      masterVolume: 0.6,
+      activePresetId: null,
+    },
+  };
+}

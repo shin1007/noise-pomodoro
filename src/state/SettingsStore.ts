@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import type { WhiteNoiseSettings } from '../protocol';
+import type { Locale } from '../i18n/locale';
 import { SETTINGS_KEY } from './settings';
 import { migrateSettings } from './migrations';
 
@@ -11,9 +12,12 @@ import { migrateSettings } from './migrations';
 export class SettingsStore {
   private settings: WhiteNoiseSettings;
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    locale: Locale,
+  ) {
     context.globalState.setKeysForSync([SETTINGS_KEY]);
-    this.settings = migrateSettings(context.globalState.get<unknown>(SETTINGS_KEY));
+    this.settings = migrateSettings(context.globalState.get<unknown>(SETTINGS_KEY), locale);
   }
 
   get(): WhiteNoiseSettings {

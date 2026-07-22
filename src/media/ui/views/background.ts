@@ -1,16 +1,17 @@
 import type { WhiteNoiseSettings } from '../../../protocol';
 import { button, el } from '../dom';
 import { NOISE_CHIPS } from '../constants';
+import { strings } from '../i18n';
 import { post, selectedFileName, setBackground } from '../state';
 
 function renderFileControls(container: HTMLElement, s: WhiteNoiseSettings): void {
   const fileName = selectedFileName ?? s.lastUsed.background.file?.fsPath.split(/[\\/]/).pop();
-  container.appendChild(el('p', { className: 'status-line', text: fileName ? `ファイル: ${fileName}` : 'ファイルが未選択です' }));
-  container.appendChild(button(fileName ? 'ファイルを変更' : 'ファイルを選択', 'preset-button', () => post({ type: 'ui:selectAudioFile' })));
+  container.appendChild(el('p', { className: 'status-line', text: fileName ? strings.background.fileLabel(fileName) : strings.background.noFileSelected }));
+  container.appendChild(button(fileName ? strings.background.changeFile : strings.background.selectFile, 'preset-button', () => post({ type: 'ui:selectAudioFile' })));
 }
 
 function renderCustomCodeControls(container: HTMLElement, s: WhiteNoiseSettings): void {
-  container.appendChild(el('p', { className: 'status-line', text: 't: 経過秒数, params: カスタムパラメータ。-1〜1 の値を return してください。' }));
+  container.appendChild(el('p', { className: 'status-line', text: strings.background.customCodeHint }));
 
   const textarea = el('textarea', { className: 'code-editor' });
   textarea.rows = 6;
@@ -19,7 +20,7 @@ function renderCustomCodeControls(container: HTMLElement, s: WhiteNoiseSettings)
   container.appendChild(textarea);
 
   container.appendChild(
-    button('適用', 'preset-button', () => {
+    button(strings.background.apply, 'preset-button', () => {
       const code = textarea.value;
       const params = s.lastUsed.background.custom?.params ?? {};
       s.lastUsed.background = { mode: 'custom', custom: { code, params } };
@@ -29,18 +30,20 @@ function renderCustomCodeControls(container: HTMLElement, s: WhiteNoiseSettings)
 }
 
 export function renderBackgroundSection(app: HTMLElement, s: WhiteNoiseSettings): void {
-  const section = el('div', { className: 'section' }, [el('h3', { text: '背景音' })]);
+  const section = el('div', { className: 'section' }, [el('h3', { text: strings.background.heading })]);
 
   const chips = el('div', { className: 'chip-row' });
   for (const chip of NOISE_CHIPS) {
     const isActive = s.lastUsed.background.mode === 'procedural' && s.lastUsed.background.noiseType === chip.key;
-    chips.appendChild(button(chip.label, `noise-chip noise-${chip.key}` + (isActive ? ' selected' : ''), () => setBackground({ mode: 'procedural', noiseType: chip.key })));
+    chips.appendChild(
+      button(strings.noiseTypes[chip.key], `noise-chip noise-${chip.key}` + (isActive ? ' selected' : ''), () => setBackground({ mode: 'procedural', noiseType: chip.key })),
+    );
   }
-  chips.appendChild(button('オフ', 'noise-chip noise-off' + (s.lastUsed.background.mode === 'off' ? ' selected' : ''), () => setBackground({ mode: 'off' })));
+  chips.appendChild(button(strings.common.off, 'noise-chip noise-off' + (s.lastUsed.background.mode === 'off' ? ' selected' : ''), () => setBackground({ mode: 'off' })));
   section.appendChild(chips);
 
-  const fileButton = button('📁 音声ファイル', 'text-button' + (s.lastUsed.background.mode === 'file' ? ' selected' : ''), () => post({ type: 'ui:selectAudioFile' }));
-  const customButton = button('🧪 カスタムコード', 'text-button' + (s.lastUsed.background.mode === 'custom' ? ' selected' : ''), () => {
+  const fileButton = button(strings.background.fileMode, 'text-button' + (s.lastUsed.background.mode === 'file' ? ' selected' : ''), () => post({ type: 'ui:selectAudioFile' }));
+  const customButton = button(strings.background.customMode, 'text-button' + (s.lastUsed.background.mode === 'custom' ? ' selected' : ''), () => {
     if (s.lastUsed.background.mode !== 'custom') {
       setBackground({ mode: 'custom', custom: { code: 'return Math.sin(2 * Math.PI * 220 * t);', params: {} } });
     }

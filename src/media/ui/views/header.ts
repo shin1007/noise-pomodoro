@@ -1,6 +1,7 @@
 import type { BackgroundConfig, BeatConfig, WhiteNoiseSettings } from '../../../protocol';
-import { bandForFrequency, noiseLabel } from '../constants';
+import { bandForFrequency } from '../constants';
 import { button, el } from '../dom';
+import { strings } from '../i18n';
 import {
   applyCurrentSettingsToPreset,
   playback,
@@ -20,17 +21,17 @@ import {
 function buildPresetSummary(config: { background: BackgroundConfig; beat: BeatConfig }): string {
   const bgLabel =
     config.background.mode === 'off'
-      ? 'ノイズなし'
+      ? strings.header.noNoise
       : config.background.mode === 'procedural' && config.background.noiseType
-        ? noiseLabel(config.background.noiseType)
+        ? strings.noiseTypes[config.background.noiseType]
         : config.background.mode === 'file'
-          ? 'ファイル'
-          : 'カスタム';
+          ? strings.header.fileBackgroundLabel
+          : strings.header.customBackgroundLabel;
   if (!config.beat.enabled) {
     return bgLabel;
   }
   const band = bandForFrequency(config.beat.beatFrequency);
-  return `${bgLabel} · ${config.beat.baseFrequency}Hz (${band.label}${band.symbol})`;
+  return `${bgLabel} · ${config.beat.baseFrequency}Hz (${strings.brainwaveBands[band.key]}${band.symbol})`;
 }
 
 export function renderHeader(app: HTMLElement, s: WhiteNoiseSettings): void {
@@ -75,24 +76,24 @@ export function renderPresetEditor(app: HTMLElement, s: WhiteNoiseSettings): voi
 
   const iconInput = el('input', { className: 'preset-icon-input' });
   iconInput.type = 'text';
-  iconInput.placeholder = 'アイコン';
+  iconInput.placeholder = strings.header.iconPlaceholder;
   iconInput.value = presetIconDraft;
   iconInput.addEventListener('input', () => setPresetIconDraft(iconInput.value));
 
   const nameInput = el('input', { className: 'preset-name-input' });
   nameInput.type = 'text';
-  nameInput.placeholder = '名前';
+  nameInput.placeholder = strings.header.namePlaceholder;
   nameInput.value = presetNameDraft;
   nameInput.addEventListener('input', () => setPresetNameDraft(nameInput.value));
 
   const descInput = el('textarea', { className: 'preset-description-input' });
   descInput.rows = 2;
-  descInput.placeholder = '説明';
+  descInput.placeholder = strings.header.descriptionPlaceholder;
   descInput.value = presetDescriptionDraft;
   descInput.addEventListener('input', () => setPresetDescriptionDraft(descInput.value));
 
-  const resetButton = button('プリセットを既定に戻す', 'preset-reset-button', resetAmbientPresets);
-  const applyButton = button('現在の設定をプリセットに適用', 'preset-apply-button', () => applyCurrentSettingsToPreset(s));
+  const resetButton = button(strings.header.resetPresetsButton, 'preset-reset-button', resetAmbientPresets);
+  const applyButton = button(strings.header.applyToPresetButton, 'preset-apply-button', () => applyCurrentSettingsToPreset(s));
 
   const card = el('div', { className: 'header-row' }, [
     el('div', { className: 'preset-name-icon-row' }, [iconInput, nameInput]),

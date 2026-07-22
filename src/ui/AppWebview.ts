@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { buildAppHtml } from './appHtml';
 import type { EngineToExtMessage, ExtToEngineMessage, ExtToUiMessage, ResolvedEnginePreset, ResolvedLiveMix, UiToExtMessage } from '../protocol';
+import type { Locale } from '../i18n/locale';
+import type { HostStrings } from '../i18n/host';
 import { logger } from '../utils/logger';
 
 export interface AppWebviewCallbacks {
@@ -38,17 +40,29 @@ export class AppWebview {
   private everPlayed = false;
 
   /** 新規生成が必要な場合、その初期表示列。既存パネルがあれば無視されます（分割位置は生成時にしか決まらないため）。 */
-  static ensure(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks, viewColumn: vscode.ViewColumn = vscode.ViewColumn.Beside): AppWebview {
+  static ensure(
+    context: vscode.ExtensionContext,
+    callbacks: AppWebviewCallbacks,
+    locale: Locale,
+    strings: HostStrings,
+    viewColumn: vscode.ViewColumn = vscode.ViewColumn.Beside,
+  ): AppWebview {
     if (AppWebview.current && !AppWebview.current.disposed) {
       return AppWebview.current;
     }
-    AppWebview.current = new AppWebview(context, callbacks, viewColumn);
+    AppWebview.current = new AppWebview(context, callbacks, locale, strings, viewColumn);
     return AppWebview.current;
   }
 
   /** パネルを（必要なら生成した上で）前面に表示します。ユーザーが明示的にパネルを開いたときに使います。 */
-  static show(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks, viewColumn: vscode.ViewColumn = vscode.ViewColumn.Beside): void {
-    AppWebview.ensure(context, callbacks, viewColumn).panel.reveal(undefined, false);
+  static show(
+    context: vscode.ExtensionContext,
+    callbacks: AppWebviewCallbacks,
+    locale: Locale,
+    strings: HostStrings,
+    viewColumn: vscode.ViewColumn = vscode.ViewColumn.Beside,
+  ): void {
+    AppWebview.ensure(context, callbacks, locale, strings, viewColumn).panel.reveal(undefined, false);
   }
 
   static hasInstance(): boolean {
@@ -73,11 +87,11 @@ export class AppWebview {
     AppWebview.current?.panel.dispose();
   }
 
-  private constructor(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks, viewColumn: vscode.ViewColumn) {
+  private constructor(context: vscode.ExtensionContext, callbacks: AppWebviewCallbacks, locale: Locale, strings: HostStrings, viewColumn: vscode.ViewColumn) {
     this.callbacks = callbacks;
     this.panel = vscode.window.createWebviewPanel(
       AppWebview.viewType,
-      'White Noise & Pomodoro',
+      strings.chrome.panelTitle,
       { viewColumn, preserveFocus: true },
       {
         enableScripts: true,
@@ -85,7 +99,7 @@ export class AppWebview {
         localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist')],
       },
     );
-    this.panel.webview.html = buildAppHtml(this.panel.webview, context.extensionUri);
+    this.panel.webview.html = buildAppHtml(this.panel.webview, context.extensionUri, locale, strings);
     this.panel.webview.onDidReceiveMessage((message: UiToExtMessage | EngineToExtMessage) => this.handleMessage(message), null, this.disposables);
     this.panel.onDidDispose(() => this.handleDispose(), null, this.disposables);
     logger.info('AppWebview を作成しました。');

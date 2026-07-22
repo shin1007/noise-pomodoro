@@ -16,6 +16,7 @@ Reference project (UX/audio parity target): the user's other repo `noise_generat
 Message contracts between them are type-only, so they're safe to import across bundles:
 - `src/protocol.ts` — extension ⇄ webview (`UiToExtMessage`/`ExtToUiMessage`) and extension ⇄ engine (`ExtToEngineMessage`/`EngineToExtMessage`).
 - `src/audioEngine/worklets/messages.ts` — engineClient.ts ⇄ worklet processors (`WorkletInMessage`/`WorkletOutMessage`).
+- `src/i18n/locale.ts` — `Locale` type + `resolveLocale()`, also shared across bundles (pure logic, no DOM/vscode dependency). Note this one *is* included via an explicit `tsconfig.webview.json` entry (like `protocol.ts`), not the `src/media/**` wildcard.
 
 ## Key files
 
@@ -26,11 +27,12 @@ Message contracts between them are type-only, so they're safe to import across b
 - `src/media/audioEngine/engineClient.ts` — owns the `AudioContext` graph: `backgroundGain`/`beatGain` → `masterGain`. Background (noise/file/custom) and beat (binaural/isochronic) are independent layers mixed at a fixed ~0.86/0.12 ratio when both are active. Uses a `mixEpoch` counter to discard stale async work (file decode, resume) when play/stop is called again before it resolves — preserve this pattern if touching async playback logic.
 - `src/audioEngine/worklets/{noiseProcessor,toneProcessor,customCodeProcessor}.ts` + `dsp.ts` — the actual DSP running in the AudioWorklet. `customCodeProcessor.ts` runs user-supplied JS via `new Function`; it's sandboxed by AudioWorkletGlobalScope having no `window`/`fetch`/filesystem access, not by static analysis.
 - `src/pomodoro/PomodoroTimer.ts` — pure timer state machine (idle/focus/break × stopped/running/paused), decoupled from the audio/UI side; driven by `extension.ts` callbacks (`onTick`/`onPhaseChange`/`onPhaseEnd`).
+- `src/i18n/{ui,host,defaultSettings}/` — translated-string dictionaries (ja/en/fr/zh/es), one bucket per bundle/purpose (webview UI chrome, extension-host toasts/statusBar/dialogs, first-run default-settings seed text). Each bucket is an `interface` + 5 locale files + a `Record<Locale, T>`; locale files carry an explicit type annotation so a missing key is a `typecheck` failure, not a silent gap. Add new user-facing strings here (matching bucket) instead of hardcoding a literal — see "Conventions" below.
 
 ## Conventions
 
-- Deliberately NOT ported from the PWA reference: PWA install prompt, i18n, MediaSession API — don't re-add for a VS Code host.
+- Deliberately NOT ported from the PWA reference: PWA install prompt, MediaSession API — don't re-add for a VS Code host.
 - Beat mode (binaural vs isochronic) is a global toggle (`lastUsed.beatMode`), not per-preset.
-- Japanese-language UI strings and comments throughout; match existing tone when adding new ones (comments explain *why*, not *what*).
+- UI-facing text (Webview labels/buttons, status bar, toasts, first-run default preset/chime names) is localized: ja (source language) / en / fr / zh / es, auto-selected from `vscode.env.language` (no in-app language switcher — see `src/i18n/**`). New user-facing strings must go through the matching `i18n` bucket's dictionaries for all 5 locales, not a hardcoded literal. Code comments stay Japanese regardless; match existing tone (comments explain *why*, not *what*). `package.json` manifest strings (command titles, settings descriptions) and Output Channel logs are intentionally NOT localized (out of scope, English/Japanese-mixed as-is).
 - `npm run typecheck` checks all three tsconfigs (main/webview/worklet) — run it after touching any of the three browser-context bundles, since a mistaken cross-bundle import (e.g. DOM types leaking into worklet code) only shows up there, not in `tsc -p tsconfig.json` alone.
 - Tests: `npm run test:unit` (mocha, pure-logic files only — format/migrations/PomodoroTimer). `npm test` runs the `@vscode/test-electron` integration test.

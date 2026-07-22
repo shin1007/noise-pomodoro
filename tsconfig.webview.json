@@ -16,6 +16,7 @@
   "include": [
     "src/media/**/*.ts",
     "src/protocol.ts",
-    "src/audioEngine/worklets/messages.ts"
+    "src/audioEngine/worklets/messages.ts",
+    "src/i18n/**/*.ts"
   ]
 }

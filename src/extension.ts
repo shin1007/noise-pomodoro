@@ -6,17 +6,24 @@ import { readAudioFile, selectAudioFile } from './fileAccess/audioFileLoader';
 import { PomodoroTimer } from './pomodoro/PomodoroTimer';
 import { formatMMSS, formatProgressBar } from './pomodoro/format';
 import { runPhaseEndScript } from './scriptRunner/PhaseEndScriptRunner';
-import { DEFAULT_AMBIENT_PRESETS } from './state/settings';
+import { buildDefaultAmbientPresets } from './state/settings';
 import { backgroundLabel } from './state/labels';
+import { resolveLocale } from './i18n/locale';
+import { HOST_STRINGS } from './i18n/host';
 import type { BackgroundConfig, PhaseConfig, PlaybackState, ResolvedBackgroundConfig, ResolvedLiveMix, UiToExtMessage, WhiteNoiseSettings } from './protocol';
 import { logger } from './utils/logger';
 import { clone } from './utils/clone';
 
 export function activate(context: vscode.ExtensionContext): void {
-  const statusBar = new StatusBar();
+  // VS Code の表示言語に自動追従します（アプリ内切替UIは無し）。表示言語を変えた場合は
+  // VS Code のリロードが必要なので、activate() 時点で一度だけ解決すれば十分です。
+  const locale = resolveLocale(vscode.env.language);
+  const hostStrings = HOST_STRINGS[locale];
+
+  const statusBar = new StatusBar(hostStrings);
   context.subscriptions.push(statusBar);
 
-  const settingsStore = new SettingsStore(context);
+  const settingsStore = new SettingsStore(context, locale);
 
   let playback: PlaybackState = {
     status: 'stopped',
@@ -52,7 +59,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
     const resolved =
       chimePreset.mode === 'file' && chimePreset.file
-        ? readAudioFile(chimePreset.file.fsPath).then((bytes) => ({ ...chimePreset, fileBytes: bytes }))
+        ? readAudioFile(chimePreset.file.fsPath, hostStrings).then((bytes) => ({ ...chimePreset, fileBytes: bytes }))
         : Promise.resolve(chimePreset);
     void resolved.then((r) => getPanel().playOneShot(r)).catch((err) => logger.error(`Failed to play chime: ${(err as Error).message}`));
   }
@@ -68,7 +75,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (background.file.fsPath === lastSentFsPath) {
       return background;
     }
-    const bytes = await readAudioFile(background.file.fsPath);
+    const bytes = await readAudioFile(background.file.fsPath, hostStrings);
     lastSentFsPath = background.file.fsPath;
     return { ...background, fileBytes: bytes };
   }
@@ -81,8 +88,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
   function fallbackPlayingLabel(): string {
     const { lastUsed } = settingsStore.get();
-    const bgLabel = backgroundLabel(lastUsed.background);
-    const beatLabel = lastUsed.beat.enabled ? (lastUsed.beatMode === 'binaural' ? 'バイノーラル' : 'アイソクロニック') : '';
+    const bgLabel = backgroundLabel(lastUsed.background, hostStrings);
+    const beatLabel = lastUsed.beat.enabled ? (lastUsed.beatMode === 'binaural' ? hostStrings.toast.binauralLabel : hostStrings.toast.isochronicLabel) : '';
     return [bgLabel, beatLabel].filter(Boolean).join(' + ') || 'White Noise';
   }
 
@@ -157,7 +164,7 @@ export function activate(context: vscode.ExtensionContext): void {
       },
       onPanelClosed: () => {
         if (playback.status !== 'stopped') {
-          void vscode.window.showWarningMessage('White Noise: パネルを閉じたため、再生を停止しました。');
+          void vscode.window.showWarningMessage(`White Noise: ${hostStrings.toast.panelClosedStoppedPlayback}`);
         }
         lastSentFsPath = undefined;
         updatePlayback(stoppedPlaybackState());
@@ -166,7 +173,7 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   function getPanel(): AppWebview {
-    return AppWebview.ensure(context, panelCallbacks());
+    return AppWebview.ensure(context, panelCallbacks(), locale, hostStrings);
   }
 
   async function pushLiveMixIfPlaying(): Promise<void> {
@@ -179,7 +186,7 @@ export function activate(context: vscode.ExtensionContext): void {
     try {
       getPanel().play(await buildResolvedMix());
     } catch (err) {
-      const errMessage = `再生できません: ${(err as Error).message}`;
+      const errMessage = hostStrings.toast.cannotPlay((err as Error).message);
       logger.error(errMessage);
       void vscode.window.showErrorMessage(`White Noise: ${errMessage}`);
       AppWebview.postMessage({ type: 'ext:error', message: errMessage });
@@ -189,7 +196,7 @@ export function activate(context: vscode.ExtensionContext): void {
   async function applyPresetId(presetId: string): Promise<void> {
     const preset = findAmbientPreset(presetId);
     if (!preset) {
-      AppWebview.postMessage({ type: 'ext:error', message: `Unknown preset: ${presetId}` });
+      AppWebview.postMessage({ type: 'ext:error', message: hostStrings.toast.unknownPreset(presetId) });
       return;
     }
     const settings = settingsStore.get();
@@ -227,14 +234,14 @@ export function activate(context: vscode.ExtensionContext): void {
     onPhaseEnd: (phase, config: PhaseConfig) => {
       const { endAction } = config;
       if (endAction.showToast) {
-        const defaultMsg = phase === 'focus' ? '集中時間終了！' : '休憩終了！';
+        const defaultMsg = phase === 'focus' ? hostStrings.toast.focusPhaseEndDefault : hostStrings.toast.breakPhaseEndDefault;
         void vscode.window.showInformationMessage(`White Noise: ${endAction.toastMessage ?? defaultMsg}`);
       }
       if (endAction.playSound && endAction.soundPresetId) {
         playChimePreset(endAction.soundPresetId);
       }
       if (endAction.runScript && endAction.scriptSource) {
-        runPhaseEndScript(endAction.scriptSource, phase);
+        runPhaseEndScript(endAction.scriptSource, phase, hostStrings);
       }
     },
   }, tickIntervalMs);
@@ -299,7 +306,7 @@ export function activate(context: vscode.ExtensionContext): void {
         break;
       case 'ui:selectAudioFile': {
         void (async () => {
-          const selected = await selectAudioFile();
+          const selected = await selectAudioFile(hostStrings);
           if (!selected) {
             return;
           }
@@ -337,7 +344,7 @@ export function activate(context: vscode.ExtensionContext): void {
         break;
       case 'ui:resetPresets':
         updateSettings((s) => {
-          s.ambientPresets = clone(DEFAULT_AMBIENT_PRESETS);
+          s.ambientPresets = clone(buildDefaultAmbientPresets(locale));
         });
         break;
       case 'ui:updatePomodoroConfig': {
@@ -380,7 +387,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand('whiteNoise.openPanel', () => {
-      AppWebview.show(context, panelCallbacks());
+      AppWebview.show(context, panelCallbacks(), locale, hostStrings);
     }),
     // ステータスバーのクリック用。ポモドーロ実行中はパネルを開き、それ以外は
     // 再生中なら停止、停止中はこの Webview で一度でも再生成功していれば
@@ -389,7 +396,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('whiteNoise.statusBar.action', () => {
       // ステータスバーからの呼び出しでは、エディタを分割せず現在のエディタ列に開きます。
       if (pomodoroTimer.getState().phase !== 'idle') {
-        AppWebview.show(context, panelCallbacks(), vscode.ViewColumn.Active);
+        AppWebview.show(context, panelCallbacks(), locale, hostStrings, vscode.ViewColumn.Active);
         return;
       }
       if (playback.status === 'playing') {
@@ -400,7 +407,7 @@ export function activate(context: vscode.ExtensionContext): void {
         dispatchUiMessage({ type: 'ui:play' });
         return;
       }
-      AppWebview.show(context, panelCallbacks(), vscode.ViewColumn.Active);
+      AppWebview.show(context, panelCallbacks(), locale, hostStrings, vscode.ViewColumn.Active);
     }),
     vscode.commands.registerCommand('whiteNoise.play', () => dispatchUiMessage({ type: 'ui:play' })),
     vscode.commands.registerCommand('whiteNoise.stop', () => dispatchUiMessage({ type: 'ui:stop' })),

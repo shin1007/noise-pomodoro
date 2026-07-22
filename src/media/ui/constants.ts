@@ -15,35 +15,28 @@ export function stepSolfeggioFrequency(current: number, direction: -1 | 1): numb
   return SOLFEGGIO_FREQUENCIES[nextIndex];
 }
 
+export type BandKey = 'delta' | 'theta' | 'alpha' | 'beta' | 'gamma';
+
 export interface BrainwaveBand {
-  key: string;
-  label: string;
+  key: BandKey;
   symbol: string;
   min: number;
   max: number;
   targetHz: number;
 }
 
+// 表示ラベルは言語依存のため i18n/ui 側の brainwaveBands 辞書に持たせ、ここには
+// キー・記号・周波数帯という言語非依存のデータだけを置きます。
 export const BRAINWAVE_BANDS: BrainwaveBand[] = [
-  { key: 'delta', label: 'デルタ', symbol: 'Δ', min: 0.5, max: 4, targetHz: 0.5 },
-  { key: 'theta', label: 'シータ', symbol: 'θ', min: 4, max: 8, targetHz: 6 },
-  { key: 'alpha', label: 'アルファ', symbol: 'α', min: 8, max: 13, targetHz: 10 },
-  { key: 'beta', label: 'ベータ', symbol: 'β', min: 13, max: 30, targetHz: 18 },
-  { key: 'gamma', label: 'ガンマ', symbol: 'γ', min: 30, max: 40, targetHz: 36 },
+  { key: 'delta', symbol: 'Δ', min: 0.5, max: 4, targetHz: 0.5 },
+  { key: 'theta', symbol: 'θ', min: 4, max: 8, targetHz: 6 },
+  { key: 'alpha', symbol: 'α', min: 8, max: 13, targetHz: 10 },
+  { key: 'beta', symbol: 'β', min: 13, max: 30, targetHz: 18 },
+  { key: 'gamma', symbol: 'γ', min: 30, max: 40, targetHz: 36 },
 ];
 
 export function bandForFrequency(freq: number): BrainwaveBand {
   return BRAINWAVE_BANDS.find((band) => freq >= band.min && (band.key === 'gamma' ? freq <= band.max : freq < band.max)) ?? BRAINWAVE_BANDS[2];
 }
 
-export const NOISE_CHIPS: Array<{ key: NoiseType; label: string }> = [
-  { key: 'white', label: 'ホワイト' },
-  { key: 'pink', label: 'ピンク' },
-  { key: 'brown', label: 'ブラウン' },
-  { key: 'blue', label: 'ブルー' },
-  { key: 'violet', label: 'ヴァイオレット' },
-];
-
-export function noiseLabel(type: NoiseType): string {
-  return NOISE_CHIPS.find((chip) => chip.key === type)?.label ?? type;
-}
+export const NOISE_CHIPS: Array<{ key: NoiseType }> = [{ key: 'white' }, { key: 'pink' }, { key: 'brown' }, { key: 'blue' }, { key: 'violet' }];

@@ -1,5 +1,6 @@
 import type { PhaseConfig, WhiteNoiseSettings } from '../../../protocol';
 import { button, el } from '../dom';
+import { strings } from '../i18n';
 import { closePomodoroSettings, post, updatePomodoroConfig } from '../state';
 
 function renderCheckboxLabel(checked: boolean, text: string, onChange: (checked: boolean) => void, trailing?: HTMLElement): HTMLLabelElement {
@@ -23,10 +24,10 @@ function renderPhaseConfigEditor(container: HTMLElement, s: WhiteNoiseSettings, 
   durationInput.min = '1';
   durationInput.value = String(Math.round(config.durationSec / 60));
   durationInput.addEventListener('change', () => updatePomodoroConfig((c) => (c[phaseKey].durationSec = Math.max(1, Number(durationInput.value)) * 60)));
-  section.appendChild(el('label', { text: '時間 (分): ' }, [durationInput]));
+  section.appendChild(el('label', { text: strings.pomodoroSettings.timeMinutesLabel }, [durationInput]));
 
   const presetSelect = el('select');
-  const noneOption = el('option', { text: '(なし)' });
+  const noneOption = el('option', { text: strings.pomodoroSettings.noneOption });
   noneOption.value = '';
   presetSelect.appendChild(noneOption);
   for (const preset of s.ambientPresets) {
@@ -38,10 +39,12 @@ function renderPhaseConfigEditor(container: HTMLElement, s: WhiteNoiseSettings, 
     presetSelect.appendChild(option);
   }
   presetSelect.addEventListener('change', () => updatePomodoroConfig((c) => (c[phaseKey].presetId = presetSelect.value || null)));
-  section.appendChild(el('label', { text: ' サウンド: ' }, [presetSelect]));
+  section.appendChild(el('label', { text: strings.pomodoroSettings.soundLabel }, [presetSelect]));
 
-  section.appendChild(renderCheckboxLabel(config.autoAdvance, ' 自動的に次のフェーズへ', (checked) => updatePomodoroConfig((c) => (c[phaseKey].autoAdvance = checked))));
-  section.appendChild(renderCheckboxLabel(config.endAction.showToast, ' 終了時にトースト通知', (checked) => updatePomodoroConfig((c) => (c[phaseKey].endAction.showToast = checked))));
+  section.appendChild(renderCheckboxLabel(config.autoAdvance, strings.pomodoroSettings.autoAdvanceLabel, (checked) => updatePomodoroConfig((c) => (c[phaseKey].autoAdvance = checked))));
+  section.appendChild(
+    renderCheckboxLabel(config.endAction.showToast, strings.pomodoroSettings.toastOnEndLabel, (checked) => updatePomodoroConfig((c) => (c[phaseKey].endAction.showToast = checked))),
+  );
 
   const soundSelect = el('select');
   for (const chime of s.chimePresets) {
@@ -55,7 +58,9 @@ function renderPhaseConfigEditor(container: HTMLElement, s: WhiteNoiseSettings, 
   soundSelect.addEventListener('change', () => updatePomodoroConfig((c) => (c[phaseKey].endAction.soundPresetId = soundSelect.value)));
   const previewButton = button('▶', 'icon-button', () => post({ type: 'ui:previewChime', presetId: soundSelect.value }));
   const soundControls = el('span', { className: 'chime-preview-row' }, [soundSelect, previewButton]);
-  section.appendChild(renderCheckboxLabel(config.endAction.playSound, ' 終了音を鳴らす: ', (checked) => updatePomodoroConfig((c) => (c[phaseKey].endAction.playSound = checked)), soundControls));
+  section.appendChild(
+    renderCheckboxLabel(config.endAction.playSound, strings.pomodoroSettings.playEndSoundLabel, (checked) => updatePomodoroConfig((c) => (c[phaseKey].endAction.playSound = checked)), soundControls),
+  );
 
   container.appendChild(section);
 }
@@ -63,10 +68,10 @@ function renderPhaseConfigEditor(container: HTMLElement, s: WhiteNoiseSettings, 
 /** ポモドーロの集中/休憩フェーズ詳細設定です。タイマーセクションの ⚙ 設定ボタンから開くモーダルとして表示します。 */
 export function renderPomodoroSettingsModal(app: HTMLElement, s: WhiteNoiseSettings): void {
   const body = el('div', { className: 'modal-body' });
-  renderPhaseConfigEditor(body, s, 'focus', s.pomodoro.focus, '集中時間');
-  renderPhaseConfigEditor(body, s, 'break', s.pomodoro.break, '休憩時間');
+  renderPhaseConfigEditor(body, s, 'focus', s.pomodoro.focus, strings.pomodoroSettings.focusDuration);
+  renderPhaseConfigEditor(body, s, 'break', s.pomodoro.break, strings.pomodoroSettings.breakDuration);
 
-  const header = el('div', { className: 'modal-header' }, [el('h2', { text: 'ポモドーロ設定' }), button('×', 'close-modal', closePomodoroSettings)]);
+  const header = el('div', { className: 'modal-header' }, [el('h2', { text: strings.pomodoroSettings.modalTitle }), button('×', 'close-modal', closePomodoroSettings)]);
   const modal = el('div', { className: 'modal-content' }, [header, body]);
   modal.addEventListener('click', (event) => event.stopPropagation());
 

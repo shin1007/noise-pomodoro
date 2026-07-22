@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import type { Locale } from '../i18n/locale';
+import type { HostStrings } from '../i18n/host';
 import { getNonce } from '../utils/nonce';
 
 /**
@@ -7,7 +9,7 @@ import { getNonce } from '../utils/nonce';
  * 同一ドキュメント内でなければブラウザの自動再生ポリシーによりブロックされ続けるため、
  * 操作系（ui.js）と音声エンジン（engine.js）は同じ Webview に同居させる必要があります。
  */
-export function buildAppHtml(webview: vscode.Webview, extensionUri: vscode.Uri): string {
+export function buildAppHtml(webview: vscode.Webview, extensionUri: vscode.Uri, locale: Locale, strings: HostStrings): string {
   const nonce = getNonce();
   const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'media', 'ui.css'));
   const uiScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'media', 'ui.js'));
@@ -29,19 +31,19 @@ export function buildAppHtml(webview: vscode.Webview, extensionUri: vscode.Uri):
   ].join('; ');
 
   return /* html */ `<!DOCTYPE html>
-<html lang="ja">
+<html lang="${strings.chrome.htmlLang}">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="${csp}" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link href="${styleUri}" rel="stylesheet" />
-  <title>White Noise & Pomodoro</title>
+  <title>${strings.chrome.panelTitle}</title>
 </head>
 <body>
   <div id="app">
-    <p class="loading">Loading…</p>
+    <p class="loading">${strings.chrome.loading}</p>
   </div>
-  <script nonce="${nonce}">window.__WORKLET_URI__ = ${JSON.stringify(workletUri.toString())};</script>
+  <script nonce="${nonce}">window.__WORKLET_URI__ = ${JSON.stringify(workletUri.toString())}; window.__INITIAL_LOCALE__ = ${JSON.stringify(locale)};</script>
   <script nonce="${nonce}" src="${engineScriptUri}"></script>
   <script nonce="${nonce}" src="${uiScriptUri}"></script>
 </body>

@@ -1,5 +1,6 @@
 import type { WhiteNoiseSettings } from '../protocol';
-import { DEFAULT_SETTINGS, SETTINGS_SCHEMA_VERSION } from './settings';
+import type { Locale } from '../i18n/locale';
+import { buildDefaultSettings, SETTINGS_SCHEMA_VERSION } from './settings';
 import { clone } from '../utils/clone';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -42,9 +43,9 @@ function isValidPomodoro(value: unknown): boolean {
  * なお音量や周波数など数値の範囲は、再生直前（engineClient.ts / 各 worklet）と PomodoroTimer で
  * クランプするため、ここでは形（スキーマ）の検証に集中します。
  */
-export function migrateSettings(raw: unknown): WhiteNoiseSettings {
+export function migrateSettings(raw: unknown, locale: Locale): WhiteNoiseSettings {
   if (!raw || typeof raw !== 'object') {
-    return clone(DEFAULT_SETTINGS);
+    return clone(buildDefaultSettings(locale));
   }
   const data = raw as Partial<WhiteNoiseSettings>;
   if (
@@ -58,7 +59,7 @@ export function migrateSettings(raw: unknown): WhiteNoiseSettings {
     !isValidBeat(data.lastUsed?.beat) ||
     (data.lastUsed?.beatMode !== 'binaural' && data.lastUsed?.beatMode !== 'isochronic')
   ) {
-    return clone(DEFAULT_SETTINGS);
+    return clone(buildDefaultSettings(locale));
   }
   return data as WhiteNoiseSettings;
 }
