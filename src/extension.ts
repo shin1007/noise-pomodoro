@@ -27,6 +27,11 @@ export function activate(context: vscode.ExtensionContext): void {
     currentTimeSec: 0,
   };
 
+  // スリープタイマー（リスニングタイマー）は webview 側でカウントダウンする、こちらでは
+  // 状態を持たないクライアント駆動のタイマーです。ステータスバー表示のためだけに
+  // ui:listenTimerTick で届く残り秒数をそのまま保持します。
+  let listenTimerRemainingSec: number | null = null;
+
   // ファイル背景音の再デコード・再送信を避けるための、直近送信済み fsPath のメモです。
   // バイト列自体は保持しません（音声ファイルは最大 50MB 想定のため、拡張機能ホスト側に
   // 二重に保持しないようにしています）。パネルが閉じられたら onPanelClosed でリセットします。
@@ -84,7 +89,7 @@ export function activate(context: vscode.ExtensionContext): void {
   function refreshIdleStatusBar(): void {
     if (playback.status === 'playing') {
       const preset = playback.activePresetId ? findAmbientPreset(playback.activePresetId) : undefined;
-      statusBar.renderPreset(preset?.icon, preset?.name ?? fallbackPlayingLabel());
+      statusBar.renderPreset(preset?.icon, preset?.name ?? fallbackPlayingLabel(), listenTimerRemainingSec);
     } else {
       statusBar.renderIdle(AppWebview.hasEverPlayed());
     }
@@ -92,6 +97,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
   function updatePlayback(next: PlaybackState): void {
     playback = next;
+    if (next.status !== 'playing') {
+      // 停止経路によっては webview からの ui:listenTimerTick(null) が届く前に
+      // 参照される可能性があるため、ここでも念のためクリアしておきます。
+      listenTimerRemainingSec = null;
+    }
     AppWebview.postMessage({ type: 'ext:playbackState', playback });
     if (pomodoroTimer.getState().phase === 'idle') {
       refreshIdleStatusBar();
@@ -355,6 +365,12 @@ export function activate(context: vscode.ExtensionContext): void {
         break;
       case 'ui:previewChime':
         playChimePreset(message.presetId);
+        break;
+      case 'ui:listenTimerTick':
+        listenTimerRemainingSec = message.remainingSec;
+        if (pomodoroTimer.getState().phase === 'idle') {
+          refreshIdleStatusBar();
+        }
         break;
       default:
         logger.info(`UI メッセージはまだ未接続です（後続実装予定）: ${(message as { type: string }).type}`);

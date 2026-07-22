@@ -94,6 +94,7 @@ export function setListenTimerRemainingSec(seconds: number): void {
   }
   listenTimerRemainingSec = Math.max(0, Math.min(TIMER_SEEKBAR_MAX_MINUTES * 60, seconds));
   updateTimerSeekbar('sleep-timer-seekbar', listenTimerRemainingSec, formatRemaining(listenTimerRemainingSec));
+  post({ type: 'ui:listenTimerTick', remainingSec: listenTimerRemainingSec });
 }
 
 // ---- 設定変更（extension へ送信しつつ再描画） ---------------------------------
@@ -147,7 +148,13 @@ function clearListenTimer(): void {
     window.clearInterval(listenTimerHandle);
     listenTimerHandle = undefined;
   }
+  const wasRunning = listenTimerRemainingSec !== null;
   listenTimerRemainingSec = null;
+  // ステータスバー（extension 側）にも残り時間を表示しているため、カウント終了時は
+  // こちらからクリアを知らせないと表示が残り続けてしまいます。
+  if (wasRunning) {
+    post({ type: 'ui:listenTimerTick', remainingSec: null });
+  }
 }
 
 function startListenTimerIfNeeded(): void {
@@ -156,12 +163,14 @@ function startListenTimerIfNeeded(): void {
     return;
   }
   listenTimerRemainingSec = listenTimerMinutes * 60;
+  post({ type: 'ui:listenTimerTick', remainingSec: listenTimerRemainingSec });
   listenTimerHandle = window.setInterval(() => {
     if (listenTimerRemainingSec === null) {
       return;
     }
     listenTimerRemainingSec -= 1;
     updateTimerSeekbar('sleep-timer-seekbar', listenTimerRemainingSec, formatRemaining(listenTimerRemainingSec));
+    post({ type: 'ui:listenTimerTick', remainingSec: listenTimerRemainingSec });
     if (listenTimerRemainingSec <= 0) {
       clearListenTimer();
       post({ type: 'ui:stop' });
