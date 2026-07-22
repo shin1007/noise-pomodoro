@@ -19,6 +19,11 @@ function post(message: EngineToExtMessage): void {
 
 const GAIN_SMOOTHING_SEC = 0.05;
 
+// 表示上のボリューム%（設定値・UI）はそのままに、実際にスピーカーへ出す音量だけを
+// 半分に抑えます（大音量による耳への負担を避けるため）。masterGain へ渡す直前、
+// このスケールを最後にかけます。
+const OUTPUT_GAIN_SCALE = 0.5;
+
 let audioContext: AudioContext | undefined;
 let masterGain: GainNode | undefined;
 let backgroundGain: GainNode | undefined;
@@ -263,7 +268,7 @@ async function applyMix(mix: ResolvedLiveMix): Promise<void> {
   const { backgroundLevel, beatLevel } = mixLevels(mix.beat.enabled);
   backgroundGain!.gain.setTargetAtTime(backgroundLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
   beatGain!.gain.setTargetAtTime(beatLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
-  masterGain!.gain.setTargetAtTime(safeGain(mix.volume), ctx.currentTime, GAIN_SMOOTHING_SEC);
+  masterGain!.gain.setTargetAtTime(safeGain(mix.volume) * OUTPUT_GAIN_SCALE, ctx.currentTime, GAIN_SMOOTHING_SEC);
 
   shouldBePlaying = true;
   post({ type: 'eng:playbackStarted' });
