@@ -22,10 +22,10 @@ describe('resolveLocale', () => {
     assert.strictEqual(resolveLocale('EN-US'), 'en');
   });
 
-  it('falls back to ja for unsupported or missing language tags', () => {
-    assert.strictEqual(resolveLocale('de'), 'ja');
-    assert.strictEqual(resolveLocale('ko'), 'ja');
-    assert.strictEqual(resolveLocale(undefined), 'ja');
-    assert.strictEqual(resolveLocale(''), 'ja');
+  it('falls back to en for unsupported or missing language tags', () => {
+    assert.strictEqual(resolveLocale('de'), 'en');
+    assert.strictEqual(resolveLocale('ko'), 'en');
+    assert.strictEqual(resolveLocale(undefined), 'en');
+    assert.strictEqual(resolveLocale(''), 'en');
   });
 });

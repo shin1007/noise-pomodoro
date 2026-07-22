@@ -11,6 +11,6 @@ declare global {
   }
 }
 
-const locale: Locale = (window.__INITIAL_LOCALE__ as Locale | undefined) ?? 'ja';
+const locale: Locale = (window.__INITIAL_LOCALE__ as Locale | undefined) ?? 'en';
 
 export const strings = UI_STRINGS[locale];
