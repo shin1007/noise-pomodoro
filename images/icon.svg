@@ -1,0 +1,25 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#232946"/>
+      <stop offset="1" stop-color="#14141f"/>
+    </linearGradient>
+    <radialGradient id="tomatoShade" cx="38%" cy="32%" r="75%">
+      <stop offset="0%" stop-color="#FF6B57"/>
+      <stop offset="60%" stop-color="#E8483D"/>
+      <stop offset="100%" stop-color="#C7362D"/>
+    </radialGradient>
+  </defs>
+
+  <rect x="0" y="0" width="128" height="128" rx="28" fill="url(#bg)"/>
+
+  <polyline points="66,60 76,36 86,72 96,42 106,66 116,50"
+            fill="none" stroke="#FFC24B" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+
+  <ellipse cx="48" cy="80" rx="32" ry="28" fill="url(#tomatoShade)"/>
+  <path d="M28,92 Q48,102 68,92" stroke="#B93327" stroke-width="3" fill="none" opacity="0.5" stroke-linecap="round"/>
+  <ellipse cx="36" cy="68" rx="8" ry="5" fill="#FFFFFF" opacity="0.25"/>
+
+  <path d="M48,38 L52.11,48.34 L63.22,49.06 L54.66,56.16 L57.40,66.94 L48,61 L38.60,66.94 L41.34,56.16 L32.78,49.06 L43.89,48.34 Z"
+        fill="#3FA34D" stroke="#2C7A38" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>
