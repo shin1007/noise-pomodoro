@@ -17,7 +17,6 @@ import type {
 import { getVsCodeApi } from '../vscodeApi';
 import { strings } from './i18n';
 import { TIMER_SEEKBAR_MAX_MINUTES, updateTimerSeekbar } from './views/timerSeekbar';
-import { MAX_MASTER_VOLUME } from '../../utils/volume';
 
 // 共有 vscode API（同一 Webview 内の engineClient.ts と acquireVsCodeApi() を共用）。
 const vscode = getVsCodeApi();
@@ -131,7 +130,7 @@ export function applyPresetLocally(s: WhiteNoiseSettings, preset: AmbientPreset)
     background: preset.background,
     beat: { ...preset.beat },
     beatMode: s.lastUsed.beatMode,
-    masterVolume: Math.min(MAX_MASTER_VOLUME, preset.volume),
+    masterVolume: preset.volume,
     activePresetId: preset.id,
   };
   playback = { ...playback, activePresetId: preset.id };

@@ -12,7 +12,6 @@ import { HOST_STRINGS } from './i18n/host';
 import type { BackgroundConfig, PhaseConfig, PlaybackState, ResolvedBackgroundConfig, ResolvedLiveMix, UiToExtMessage, WhiteNoiseSettings } from './protocol';
 import { logger } from './utils/logger';
 import { clone } from './utils/clone';
-import { MAX_MASTER_VOLUME } from './utils/volume';
 
 export function activate(context: vscode.ExtensionContext): void {
   // VS Code の表示言語に自動追従します（アプリ内切替UIは無し）。表示言語を変えた場合は
@@ -225,7 +224,7 @@ export function activate(context: vscode.ExtensionContext): void {
       background: preset.background,
       beat: { ...preset.beat },
       beatMode: settings.lastUsed.beatMode,
-      masterVolume: Math.min(MAX_MASTER_VOLUME, preset.volume),
+      masterVolume: preset.volume,
       activePresetId: preset.id,
     };
     void settingsStore.persist();
@@ -322,7 +321,7 @@ export function activate(context: vscode.ExtensionContext): void {
         break;
       case 'ui:setMasterVolume':
         updateLiveConfig((s) => {
-          s.lastUsed.masterVolume = Math.min(MAX_MASTER_VOLUME, message.value);
+          s.lastUsed.masterVolume = message.value;
         });
         break;
       case 'ui:selectAudioFile': {
