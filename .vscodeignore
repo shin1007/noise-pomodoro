@@ -14,3 +14,4 @@ CLAUDE.md
 **/.git/**
 **/node_modules/**
 **/*.map
+.tmp-shots/**

@@ -2,7 +2,7 @@ import type { AmbientPreset, PhaseConfig, PresetConfig, NoisePomodoroSettings } 
 import type { Locale } from '../i18n/locale';
 import { DEFAULT_SETTINGS_STRINGS } from '../i18n/defaultSettings';
 
-export const SETTINGS_SCHEMA_VERSION = 2;
+export const SETTINGS_SCHEMA_VERSION = 3;
 export const SETTINGS_KEY = 'noisePomodoro.settings';
 
 // デルタ 0.5-4Hz / シータ 4-8Hz / アルファ 8-13Hz / ベータ 13-30Hz / ガンマ 30-40Hz の
@@ -152,6 +152,7 @@ export function buildDefaultSettings(locale: Locale): NoisePomodoroSettings {
     ambientPresets: buildDefaultAmbientPresets(locale),
     chimePresets: buildChimePresets(locale),
     pomodoro: { focus: buildDefaultFocusPhase(locale), break: buildDefaultBreakPhase(locale) },
+    audioOutputScale: 0.25,
     lastUsed: {
       background: { mode: 'procedural', noiseType: 'white' },
       beat: { enabled: false, baseFrequency: 528, beatFrequency: 10 },

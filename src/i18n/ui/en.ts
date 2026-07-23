@@ -38,6 +38,7 @@ const strings: UiStrings = {
   },
   controls: {
     volumeLabel: 'Volume',
+    outputLimiterLabel: 'Output limiter',
   },
   header: {
     noNoise: 'No noise',

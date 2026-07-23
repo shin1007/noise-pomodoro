@@ -19,18 +19,14 @@ function post(message: EngineToExtMessage): void {
 
 const GAIN_SMOOTHING_SEC = 0.05;
 
-// 表示上のボリューム%（設定値・UI）はそのままに、実際にスピーカーへ出す音量だけを
-// 半分に抑えます（大音量による耳への負担を避けるため）。masterGain へ渡す直前、
-// このスケールを最後にかけます。
-const OUTPUT_GAIN_SCALE = 0.5;
-
 let audioContext: AudioContext | undefined;
 let masterGain: GainNode | undefined;
 let backgroundGain: GainNode | undefined;
 let beatGain: GainNode | undefined;
 // フェーズ終了チャイム等の one-shot 再生専用のゲインです。masterGain は非再生時に 0 のため、
 // そこへ繋ぐと「再生していない間はチャイムが無音になる」問題が起きます。destination へ直結し、
-// 常に OUTPUT_GAIN_SCALE を保つことで、アンビエント再生の有無に関係なく一定音量で鳴らせます。
+// アンビエント再生の有無に関係なく一定音量で鳴らせます。音量は各ノードの gain（extension.ts が
+// settings.audioOutputScale を織り込み済みの preset.volume）で決まるため、ここは常に 1 で中立です。
 let oneShotGain: GainNode | undefined;
 
 // 背景音レイヤー（ノイズ / ファイル / カスタムコード。排他的に 1 つだけ有効）
@@ -91,7 +87,7 @@ async function ensureAudioContext(): Promise<AudioContext> {
   beatGain.gain.value = 0;
   beatGain.connect(masterGain);
   oneShotGain = audioContext.createGain();
-  oneShotGain.gain.value = OUTPUT_GAIN_SCALE;
+  oneShotGain.gain.value = 1;
   oneShotGain.connect(audioContext.destination);
   return audioContext;
 }
@@ -275,7 +271,7 @@ async function applyMix(mix: ResolvedLiveMix): Promise<void> {
   const { backgroundLevel, beatLevel } = mixLevels(mix.beat.enabled);
   backgroundGain!.gain.setTargetAtTime(backgroundLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
   beatGain!.gain.setTargetAtTime(beatLevel, ctx.currentTime, GAIN_SMOOTHING_SEC);
-  masterGain!.gain.setTargetAtTime(safeGain(mix.volume) * OUTPUT_GAIN_SCALE, ctx.currentTime, GAIN_SMOOTHING_SEC);
+  masterGain!.gain.setTargetAtTime(safeGain(mix.volume), ctx.currentTime, GAIN_SMOOTHING_SEC);
 
   shouldBePlaying = true;
   post({ type: 'eng:playbackStarted' });

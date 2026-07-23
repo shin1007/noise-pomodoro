@@ -38,6 +38,7 @@ const strings: UiStrings = {
   },
   controls: {
     volumeLabel: '音量',
+    outputLimiterLabel: '出力音量の上限',
   },
   header: {
     noNoise: 'ノイズなし',

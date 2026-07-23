@@ -3,7 +3,7 @@ import type { ExtToUiMessage } from '../../protocol';
 import { strings } from './i18n';
 import { handleExtMessage, pomodoroSettingsOpen, post, settings, setRenderCallback } from './state';
 import { renderHeader, renderPresetEditor } from './views/header';
-import { renderVolumeControl } from './views/controls';
+import { renderOutputLimiterControl, renderVolumeControl } from './views/controls';
 import { renderBackgroundSection } from './views/background';
 import { renderBeatSection } from './views/beat';
 import { renderTimerSection } from './views/timer';
@@ -26,6 +26,7 @@ function render(): void {
   renderHeader(app, s);
   renderTimerSection(app, s);
   renderVolumeControl(app, s);
+  renderOutputLimiterControl(app, s);
   renderBackgroundSection(app, s);
   renderBeatSection(app, s);
   renderPresetEditor(app, s);

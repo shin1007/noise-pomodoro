@@ -37,6 +37,7 @@ export interface UiStrings {
   };
   controls: {
     volumeLabel: string;
+    outputLimiterLabel: string;
   };
   header: {
     noNoise: string;

@@ -56,10 +56,12 @@ export function activate(context: vscode.ExtensionContext): void {
     if (!chimePreset) {
       return;
     }
+    // engine 側の oneShotGain は中立(1)なので、audioOutputScale はここで一度だけ織り込みます。
+    const scaledPreset = { ...chimePreset, volume: chimePreset.volume * settingsStore.get().audioOutputScale };
     const resolved =
-      chimePreset.mode === 'file' && chimePreset.file
-        ? readAudioFile(chimePreset.file.fsPath, hostStrings).then((bytes) => ({ ...chimePreset, fileBytes: bytes }))
-        : Promise.resolve(chimePreset);
+      scaledPreset.mode === 'file' && scaledPreset.file
+        ? readAudioFile(scaledPreset.file.fsPath, hostStrings).then((bytes) => ({ ...scaledPreset, fileBytes: bytes }))
+        : Promise.resolve(scaledPreset);
     void resolved.then((r) => getPanel().playOneShot(r)).catch((err) => logger.error(`Failed to play chime: ${(err as Error).message}`));
   }
 
@@ -80,9 +82,12 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   async function buildResolvedMix(): Promise<ResolvedLiveMix> {
-    const { lastUsed } = settingsStore.get();
+    const settings = settingsStore.get();
+    const { lastUsed } = settings;
     const background = await resolveBackground(lastUsed.background);
-    return { background, beat: lastUsed.beat, beatMode: lastUsed.beatMode, volume: lastUsed.masterVolume };
+    // masterGain は中立なので、実際にスピーカーへ出す音量の上限(audioOutputScale)はここで
+    // 一度だけ織り込みます。表示上のボリューム%（lastUsed.masterVolume）はそのままです。
+    return { background, beat: lastUsed.beat, beatMode: lastUsed.beatMode, volume: lastUsed.masterVolume * settings.audioOutputScale };
   }
 
   function fallbackPlayingLabel(): string {
@@ -322,6 +327,11 @@ export function activate(context: vscode.ExtensionContext): void {
       case 'ui:setMasterVolume':
         updateLiveConfig((s) => {
           s.lastUsed.masterVolume = message.value;
+        });
+        break;
+      case 'ui:setAudioOutputScale':
+        updateLiveConfig((s) => {
+          s.audioOutputScale = message.value;
         });
         break;
       case 'ui:selectAudioFile': {

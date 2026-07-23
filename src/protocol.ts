@@ -102,6 +102,9 @@ export interface NoisePomodoroSettings {
   ambientPresets: AmbientPreset[];
   chimePresets: PresetConfig[];
   pomodoro: PomodoroConfig;
+  /** 全レイヤー共通で、最終的にスピーカーへ出す音量に一律掛ける倍率 (0-1)。プリセット/スライダーの
+   * 音量表示には影響しません。大音量による耳への負担を避けるための上限で、既定は 0.25。 */
+  audioOutputScale: number;
   lastUsed: {
     background: BackgroundConfig;
     beat: BeatConfig;
@@ -136,6 +139,7 @@ export type UiToExtMessage =
   | { type: 'ui:setBeat'; beat: BeatConfig }
   | { type: 'ui:setBeatMode'; mode: BeatMode }
   | { type: 'ui:setMasterVolume'; value: number }
+  | { type: 'ui:setAudioOutputScale'; value: number }
   | { type: 'ui:selectAudioFile' }
   | { type: 'ui:setCustomCode'; code: string; params: Record<string, number> }
   | { type: 'ui:savePreset'; preset: AmbientPreset }

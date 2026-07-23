@@ -39,6 +39,7 @@ const strings: UiStrings = {
   },
   controls: {
     volumeLabel: '音量',
+    outputLimiterLabel: '输出音量上限',
   },
   header: {
     noNoise: '无噪音',
