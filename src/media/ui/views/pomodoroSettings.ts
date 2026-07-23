@@ -1,4 +1,4 @@
-import type { PhaseConfig, WhiteNoiseSettings } from '../../../protocol';
+import type { PhaseConfig, NoisePomodoroSettings } from '../../../protocol';
 import { button, el } from '../dom';
 import { strings } from '../i18n';
 import { closePomodoroSettings, post, updatePomodoroConfig } from '../state';
@@ -17,7 +17,7 @@ function renderCheckboxLabel(checked: boolean, text: string, onChange: (checked:
   return label;
 }
 
-function renderPhaseConfigEditor(container: HTMLElement, s: WhiteNoiseSettings, phaseKey: 'focus' | 'break', config: PhaseConfig, label: string): void {
+function renderPhaseConfigEditor(container: HTMLElement, s: NoisePomodoroSettings, phaseKey: 'focus' | 'break', config: PhaseConfig, label: string): void {
   const section = el('div', { className: 'phase-config' }, [el('h4', { text: label })]);
 
   // ステータスバーの表示幅（statusBar.ts の MAX_LABEL_LEN）は残り時間が "MM:SS" の5文字に
@@ -75,7 +75,7 @@ function renderPhaseConfigEditor(container: HTMLElement, s: WhiteNoiseSettings, 
 }
 
 /** ポモドーロの集中/休憩フェーズ詳細設定です。タイマーセクションの ⚙ 設定ボタンから開くモーダルとして表示します。 */
-export function renderPomodoroSettingsModal(app: HTMLElement, s: WhiteNoiseSettings): void {
+export function renderPomodoroSettingsModal(app: HTMLElement, s: NoisePomodoroSettings): void {
   const body = el('div', { className: 'modal-body' });
   renderPhaseConfigEditor(body, s, 'focus', s.pomodoro.focus, strings.pomodoroSettings.focusDuration);
   renderPhaseConfigEditor(body, s, 'break', s.pomodoro.break, strings.pomodoroSettings.breakDuration);

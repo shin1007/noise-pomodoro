@@ -1,10 +1,10 @@
-import type { WhiteNoiseSettings } from '../../../protocol';
+import type { NoisePomodoroSettings } from '../../../protocol';
 import { button, el, labelRow, rangeSlider, stepper } from '../dom';
 import { BRAINWAVE_BANDS, bandForFrequency, findNearestSolfeggio, stepSolfeggioFrequency } from '../constants';
 import { strings } from '../i18n';
 import { setBeat, setBeatMode } from '../state';
 
-export function renderBaseFrequencyControl(container: HTMLElement, s: WhiteNoiseSettings): void {
+export function renderBaseFrequencyControl(container: HTMLElement, s: NoisePomodoroSettings): void {
   const baseFreq = s.lastUsed.beat.baseFrequency;
   const { group } = stepper(
     `${baseFreq}Hz`,
@@ -25,7 +25,7 @@ export function renderBaseFrequencyControl(container: HTMLElement, s: WhiteNoise
   container.appendChild(el('div', { className: 'control-group' }, [labelRow(strings.beat.baseFrequencyLabel, group), slider]));
 }
 
-export function renderBeatSection(app: HTMLElement, s: WhiteNoiseSettings): void {
+export function renderBeatSection(app: HTMLElement, s: NoisePomodoroSettings): void {
   const section = el('div', { className: 'section' }, [el('h3', { text: strings.beat.heading })]);
 
   section.appendChild(

@@ -9,7 +9,7 @@ import { buildDefaultAmbientPresets } from './state/settings';
 import { backgroundLabel } from './state/labels';
 import { resolveLocale } from './i18n/locale';
 import { HOST_STRINGS } from './i18n/host';
-import type { BackgroundConfig, PhaseConfig, PlaybackState, ResolvedBackgroundConfig, ResolvedLiveMix, UiToExtMessage, WhiteNoiseSettings } from './protocol';
+import type { BackgroundConfig, PhaseConfig, PlaybackState, ResolvedBackgroundConfig, ResolvedLiveMix, UiToExtMessage, NoisePomodoroSettings } from './protocol';
 import { logger } from './utils/logger';
 import { clone } from './utils/clone';
 
@@ -89,7 +89,7 @@ export function activate(context: vscode.ExtensionContext): void {
     const { lastUsed } = settingsStore.get();
     const bgLabel = backgroundLabel(lastUsed.background, hostStrings);
     const beatLabel = lastUsed.beat.enabled ? (lastUsed.beatMode === 'binaural' ? hostStrings.toast.binauralLabel : hostStrings.toast.isochronicLabel) : '';
-    return [bgLabel, beatLabel].filter(Boolean).join(' + ') || 'White Noise';
+    return [bgLabel, beatLabel].filter(Boolean).join(' + ') || 'Noise Pomodoro';
   }
 
   function refreshIdleStatusBar(): void {
@@ -168,7 +168,7 @@ export function activate(context: vscode.ExtensionContext): void {
       },
       onPlaybackError: (layer, message) => {
         logger.error(`Playback error (${layer}): ${message}`);
-        void vscode.window.showErrorMessage(`White Noise: ${message}`);
+        void vscode.window.showErrorMessage(`Noise Pomodoro: ${message}`);
         if (layer === 'background') {
           // 背景音レイヤーが失われたので、次回同じファイルでも必ずバイト列を送り直します。
           lastSentFsPath = undefined;
@@ -184,7 +184,7 @@ export function activate(context: vscode.ExtensionContext): void {
       },
       onPanelClosed: () => {
         if (playback.status !== 'stopped') {
-          void vscode.window.showWarningMessage(`White Noise: ${hostStrings.toast.panelClosedStoppedPlayback}`);
+          void vscode.window.showWarningMessage(`Noise Pomodoro: ${hostStrings.toast.panelClosedStoppedPlayback}`);
         }
         lastSentFsPath = undefined;
         updatePlayback(stoppedPlaybackState());
@@ -208,7 +208,7 @@ export function activate(context: vscode.ExtensionContext): void {
     } catch (err) {
       const errMessage = hostStrings.toast.cannotPlay((err as Error).message);
       logger.error(errMessage);
-      void vscode.window.showErrorMessage(`White Noise: ${errMessage}`);
+      void vscode.window.showErrorMessage(`Noise Pomodoro: ${errMessage}`);
       AppWebview.postMessage({ type: 'ext:error', message: errMessage });
     }
   }
@@ -232,7 +232,7 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   // --- ポモドーロ関連 ---
-  const tickIntervalMs = vscode.workspace.getConfiguration('whiteNoise').get<number>('statusBar.updateIntervalMs', 1000);
+  const tickIntervalMs = vscode.workspace.getConfiguration('noisePomodoro').get<number>('statusBar.updateIntervalMs', 1000);
   const pomodoroTimer = new PomodoroTimer(settingsStore.get().pomodoro, {
     onTick: (state, remainingSec, totalSec) => {
       if (state.phase === 'idle') {
@@ -255,7 +255,7 @@ export function activate(context: vscode.ExtensionContext): void {
       const { endAction } = config;
       if (endAction.showToast) {
         const defaultMsg = phase === 'focus' ? hostStrings.toast.focusPhaseEndDefault : hostStrings.toast.breakPhaseEndDefault;
-        void vscode.window.showInformationMessage(`White Noise: ${endAction.toastMessage ?? defaultMsg}`);
+        void vscode.window.showInformationMessage(`Noise Pomodoro: ${endAction.toastMessage ?? defaultMsg}`);
       }
       if (endAction.playSound && endAction.soundPresetId) {
         playChimePreset(endAction.soundPresetId);
@@ -272,14 +272,14 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   /** lastUsed を変更し、永続化してから再生中なら即座に反映します（ui:setXxx 系の共通処理）。 */
-  function updateLiveConfig(mutate: (settings: WhiteNoiseSettings) => void): void {
+  function updateLiveConfig(mutate: (settings: NoisePomodoroSettings) => void): void {
     mutate(settingsStore.get());
     void settingsStore.persist();
     void pushLiveMixIfPlaying();
   }
 
   /** 設定を変更し、永続化してから全 Webview に stateSync を配信します（プリセット管理系の共通処理）。 */
-  function updateSettings(mutate: (settings: WhiteNoiseSettings) => void): void {
+  function updateSettings(mutate: (settings: NoisePomodoroSettings) => void): void {
     mutate(settingsStore.get());
     void settingsStore.persist();
     broadcastStateSync();
@@ -406,14 +406,14 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   context.subscriptions.push(
-    vscode.commands.registerCommand('whiteNoise.openPanel', () => {
+    vscode.commands.registerCommand('noisePomodoro.openPanel', () => {
       AppWebview.show(context, panelCallbacks(), locale, hostStrings);
     }),
     // ステータスバーのクリック用。ポモドーロ実行中はパネルを開き、それ以外は
     // 再生中なら停止、停止中はこの Webview で一度でも再生成功していれば
     // パネルを開かず直接トグル再生します（自動再生ポリシーの都合上、
     // 一度もクリックされていない Webview では resume() が完了しないため）。
-    vscode.commands.registerCommand('whiteNoise.statusBar.action', () => {
+    vscode.commands.registerCommand('noisePomodoro.statusBar.action', () => {
       // ステータスバーからの呼び出しでは、エディタを分割せず現在のエディタ列に開きます。
       if (pomodoroTimer.getState().phase !== 'idle') {
         AppWebview.show(context, panelCallbacks(), locale, hostStrings, vscode.ViewColumn.Active);
@@ -429,15 +429,15 @@ export function activate(context: vscode.ExtensionContext): void {
       }
       AppWebview.show(context, panelCallbacks(), locale, hostStrings, vscode.ViewColumn.Active);
     }),
-    vscode.commands.registerCommand('whiteNoise.play', () => dispatchUiMessage({ type: 'ui:play' })),
-    vscode.commands.registerCommand('whiteNoise.stop', () => dispatchUiMessage({ type: 'ui:stop' })),
-    vscode.commands.registerCommand('whiteNoise.pomodoro.start', () => pomodoroTimer.start()),
-    vscode.commands.registerCommand('whiteNoise.pomodoro.pause', () => pomodoroTimer.pause()),
-    vscode.commands.registerCommand('whiteNoise.pomodoro.reset', () => pomodoroTimer.reset()),
-    vscode.commands.registerCommand('whiteNoise.pomodoro.skipPhase', () => pomodoroTimer.skipPhase()),
+    vscode.commands.registerCommand('noisePomodoro.play', () => dispatchUiMessage({ type: 'ui:play' })),
+    vscode.commands.registerCommand('noisePomodoro.stop', () => dispatchUiMessage({ type: 'ui:stop' })),
+    vscode.commands.registerCommand('noisePomodoro.pomodoro.start', () => pomodoroTimer.start()),
+    vscode.commands.registerCommand('noisePomodoro.pomodoro.pause', () => pomodoroTimer.pause()),
+    vscode.commands.registerCommand('noisePomodoro.pomodoro.reset', () => pomodoroTimer.reset()),
+    vscode.commands.registerCommand('noisePomodoro.pomodoro.skipPhase', () => pomodoroTimer.skipPhase()),
   );
 
-  logger.info('White Noise & Pomodoro activated.');
+  logger.info('Noise Pomodoro activated.');
 }
 
 export function deactivate(): void {

@@ -3,7 +3,7 @@ import type { HostStrings } from './index';
 const strings: HostStrings = {
   chrome: {
     htmlLang: 'fr',
-    panelTitle: 'White Noise & Pomodoro',
+    panelTitle: 'Noise Pomodoro',
     loading: 'Chargement…',
   },
   statusBar: {
@@ -35,7 +35,7 @@ const strings: HostStrings = {
   scriptRunner: {
     workspaceNotTrusted:
       'Les scripts de fin de phase ne s’exécutent que dans les espaces de travail approuvés. Ignoré car l’espace de travail actuel n’est pas approuvé.',
-    featureDisabled: 'Un script de fin de phase est configuré mais désactivé. Activez "whiteNoise.enablePhaseEndScripts" dans les paramètres pour l’exécuter.',
+    featureDisabled: 'Un script de fin de phase est configuré mais désactivé. Activez "noisePomodoro.enablePhaseEndScripts" dans les paramètres pour l’exécuter.',
     scriptError: (message) => `Erreur du script de fin de phase : ${message}`,
   },
   backgroundLabel: {

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import type { WhiteNoiseSettings } from '../protocol';
+import type { NoisePomodoroSettings } from '../protocol';
 import type { Locale } from '../i18n/locale';
 import { SETTINGS_KEY } from './settings';
 import { migrateSettings } from './migrations';
@@ -10,7 +10,7 @@ import { migrateSettings } from './migrations';
  * の通常の global state 保存先には端末ごとに永続化されます。
  */
 export class SettingsStore {
-  private settings: WhiteNoiseSettings;
+  private settings: NoisePomodoroSettings;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -20,7 +20,7 @@ export class SettingsStore {
     this.settings = migrateSettings(context.globalState.get<unknown>(SETTINGS_KEY), locale);
   }
 
-  get(): WhiteNoiseSettings {
+  get(): NoisePomodoroSettings {
     return this.settings;
   }
 

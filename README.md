@@ -1,4 +1,4 @@
-# White Noise & Pomodoro
+# Noise Pomodoro
 
 ホワイトノイズ、ピンクノイズ、ブラウンノイズ、アイソクロニックトーン、バイノーラルビート、ソルフェジオ周波数を生成し、ローカル音声ファイルの再生と JavaScript のカスタムコード再生にも対応した拡張機能です。ポモドーロタイマーも内蔵しており、集中時間と休憩時間で別々のサウンドを切り替えられます。
 
@@ -36,8 +36,8 @@
 
 ## 設定
 
-- `whiteNoise.enablePhaseEndScripts`: フェーズ終了時のカスタムスクリプトを許可します。既定は `false` です。拡張機能ホストと Node の権限で実行されるため、自分で書いたスクリプトだけを使ってください。
-- `whiteNoise.statusBar.updateIntervalMs`: ポモドーロのステータスバー更新間隔です。既定は `1000` ミリ秒です。
+- `noisePomodoro.enablePhaseEndScripts`: フェーズ終了時のカスタムスクリプトを許可します。既定は `false` です。拡張機能ホストと Node の権限で実行されるため、自分で書いたスクリプトだけを使ってください。
+- `noisePomodoro.statusBar.updateIntervalMs`: ポモドーロのステータスバー更新間隔です。既定は `1000` ミリ秒です。
 
 ## 開発
 

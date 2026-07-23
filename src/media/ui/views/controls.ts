@@ -1,9 +1,9 @@
-import type { WhiteNoiseSettings } from '../../../protocol';
+import type { NoisePomodoroSettings } from '../../../protocol';
 import { el, labelRow, rangeSlider, stepper } from '../dom';
 import { strings } from '../i18n';
 import { post } from '../state';
 
-export function renderVolumeControl(app: HTMLElement, s: WhiteNoiseSettings): void {
+export function renderVolumeControl(app: HTMLElement, s: NoisePomodoroSettings): void {
   const currentPercent = () => Math.round(s.lastUsed.masterVolume * 100);
   const { group: stepperGroup, value: valueDisplay } = stepper(`${currentPercent()}%`, () => apply(currentPercent() - 1), () => apply(currentPercent() + 1));
   const slider = rangeSlider({ min: 0, max: 100, step: 1, value: currentPercent(), event: 'input', onChange: apply });

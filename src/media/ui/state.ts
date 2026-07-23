@@ -12,7 +12,7 @@ import type {
   PomodoroConfig,
   PomodoroState,
   UiToExtMessage,
-  WhiteNoiseSettings,
+  NoisePomodoroSettings,
 } from '../../protocol';
 import { getVsCodeApi } from '../vscodeApi';
 import { strings } from './i18n';
@@ -35,7 +35,7 @@ export function requestRender(): void {
 
 // ---- モジュール状態 -----------------------------------------------------------
 
-export let settings: WhiteNoiseSettings | undefined;
+export let settings: NoisePomodoroSettings | undefined;
 export let playback: PlaybackState = { status: 'stopped', backgroundActive: false, beatActive: false, beatMode: 'binaural', activePresetId: null, currentTimeSec: 0 };
 let previousPlaybackStatus: PlaybackState['status'] = 'stopped';
 export let pomodoroState: PomodoroState = { phase: 'idle', runState: 'stopped', phaseStartedAt: null, phaseDurationSec: 0, elapsedBeforePauseSec: 0 };
@@ -125,7 +125,7 @@ export function setBeatMode(mode: BeatMode): void {
 }
 
 /** プリセットカードのクリックによる即時反映です（post 後、stateSync を待たずローカルにも適用します）。 */
-export function applyPresetLocally(s: WhiteNoiseSettings, preset: AmbientPreset): void {
+export function applyPresetLocally(s: NoisePomodoroSettings, preset: AmbientPreset): void {
   s.lastUsed = {
     background: preset.background,
     beat: { ...preset.beat },
@@ -210,7 +210,7 @@ function handlePlaybackUpdate(next: PlaybackState): void {
 // ---- プリセット選択・適用 -------------------------------------------------------
 
 /** ヘッダーのドロップダウンでプリセットを選ぶと、その設定を即座に現在の設定へ反映します。 */
-export function selectPreset(s: WhiteNoiseSettings, preset: AmbientPreset): void {
+export function selectPreset(s: NoisePomodoroSettings, preset: AmbientPreset): void {
   selectedPresetId = preset.id;
   presetNameDraft = preset.name;
   presetIconDraft = preset.icon ?? '';
@@ -233,7 +233,7 @@ export function setPresetDescriptionDraft(value: string): void {
 }
 
 /** 「現在の設定をプリセットに適用」ボタン。選択中プリセットへ、現在の背景音/ビート/音量と名前・アイコン・説明文の下書きを上書き保存します。 */
-export function applyCurrentSettingsToPreset(s: WhiteNoiseSettings): void {
+export function applyCurrentSettingsToPreset(s: NoisePomodoroSettings): void {
   const target = s.ambientPresets.find((preset) => preset.id === selectedPresetId);
   if (!target) return;
   const updated: AmbientPreset = {
@@ -357,7 +357,7 @@ export function handleExtMessage(message: ExtToUiMessage): void {
       post({ type: 'ui:play' });
       break;
     case 'ext:error':
-      console.error('[white-noise]', message.message);
+      console.error('[noise-pomodoro]', message.message);
       break;
     default:
       break;

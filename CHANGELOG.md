@@ -1,6 +1,6 @@
 # Changelog
 
-White Noise & Pomodoro の変更履歴です。
+Noise Pomodoro の変更履歴です。
 
 ## [0.0.1] - 2026-07-22
 

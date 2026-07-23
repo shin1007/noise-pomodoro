@@ -3,9 +3,9 @@ import type { HostStrings } from './i18n/host';
 import { formatMMSS, formatProgressBar } from './pomodoro/format';
 
 // ブランド名自体は VS Code 本体を翻訳しないのと同様、ロケールに関係なく据え置きます。
-const BRAND = 'White Noise';
+const BRAND = 'Noise Pomodoro';
 
-// アイドル時の "White Noise" を基準に、アイコンの後ろに続くテキスト部分の最大幅とします
+// アイドル時の "Noise Pomodoro" を基準に、アイコンの後ろに続くテキスト部分の最大幅とします
 // （プリセット名やポモドーロのプログレスバーで、アイドル時より横幅が広がらないようにするため）。
 // $(icon) のようなコディコン表記は概算で1文字ぶんとして扱います。
 const MAX_LABEL_LEN = BRAND.length;
@@ -28,7 +28,7 @@ export class StatusBar {
 
   constructor(private readonly strings: HostStrings) {
     this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
-    this.item.command = 'whiteNoise.statusBar.action';
+    this.item.command = 'noisePomodoro.statusBar.action';
     this.renderIdle(false);
     this.item.show();
   }
@@ -55,7 +55,7 @@ export class StatusBar {
 
   /** "[bar] mmss" が MAX_LABEL_LEN に収まるよう、mmss とブラケット・区切りぶんを
    * 差し引いた残りをバーのマス目数にします（既定の10マスだとステータスバーが
-   * "White Noise" よりかなり広がってしまうため）。 */
+   * "Noise Pomodoro" よりかなり広がってしまうため）。 */
   renderPomodoro(remainingSec: number, totalSec: number, phase: 'focus' | 'break', paused: boolean): void {
     const icon = paused ? '$(debug-pause)' : phase === 'break' ? '$(coffee)' : '$(flame)';
     const mmss = formatMMSS(remainingSec);

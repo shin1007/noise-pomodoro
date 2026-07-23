@@ -52,7 +52,7 @@ export async function readAudioFile(fsPath: string, strings: HostStrings): Promi
     throw new Error(strings.fileDialog.fileTooLarge(mb, MAX_ALLOWED_BYTES / (1024 * 1024)));
   }
   if (stat.size > MAX_RECOMMENDED_BYTES) {
-    void vscode.window.showWarningMessage(`White Noise: ${strings.fileDialog.fileLargeWarning(fsPath)}`);
+    void vscode.window.showWarningMessage(`Noise Pomodoro: ${strings.fileDialog.fileLargeWarning(fsPath)}`);
   }
   return vscode.workspace.fs.readFile(uri);
 }

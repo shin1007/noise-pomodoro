@@ -5,7 +5,7 @@ class Logger {
 
   private get out(): vscode.OutputChannel {
     if (!this.channel) {
-      this.channel = vscode.window.createOutputChannel('White Noise & Pomodoro');
+      this.channel = vscode.window.createOutputChannel('Noise Pomodoro');
     }
     return this.channel;
   }

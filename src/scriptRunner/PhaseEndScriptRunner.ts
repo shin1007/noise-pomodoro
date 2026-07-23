@@ -7,7 +7,7 @@ import { logger } from '../utils/logger';
  * プロセス）内で動くため、音声カスタムコードの sandbox（AudioWorkletGlobalScope には
  * Node / DOM API がない）とは異なり、`new Function` の中身から `process` などの Node
  * グローバルに到達できる可能性があります。リスクは次の4点で抑えています。
- * (1) 明示的な opt-in 設定（whiteNoise.enablePhaseEndScripts）でのみ有効化する、
+ * (1) 明示的な opt-in 設定（noisePomodoro.enablePhaseEndScripts）でのみ有効化する、
  * (2) 信頼済みワークスペースでのみ実行する（下記 isTrusted チェック）、
  * (3) スクリプトへ渡す `vscode` 引数は showInformationMessage/showWarningMessage/
  *     executeCommand だけを持つ最小限の API に限定する、
@@ -20,12 +20,12 @@ export function runPhaseEndScript(code: string, phase: 'focus' | 'break', string
   // scriptSource 自体は globalState 由来（ワークスペース外）ですが、この機能は executeCommand で
   // 任意コマンドを起動できるため、信頼済みのワークスペースに限定するのが安全です。
   if (!vscode.workspace.isTrusted) {
-    void vscode.window.showWarningMessage(`White Noise: ${strings.scriptRunner.workspaceNotTrusted}`);
+    void vscode.window.showWarningMessage(`Noise Pomodoro: ${strings.scriptRunner.workspaceNotTrusted}`);
     return;
   }
-  const enabled = vscode.workspace.getConfiguration('whiteNoise').get<boolean>('enablePhaseEndScripts', false);
+  const enabled = vscode.workspace.getConfiguration('noisePomodoro').get<boolean>('enablePhaseEndScripts', false);
   if (!enabled) {
-    void vscode.window.showWarningMessage(`White Noise: ${strings.scriptRunner.featureDisabled}`);
+    void vscode.window.showWarningMessage(`Noise Pomodoro: ${strings.scriptRunner.featureDisabled}`);
     return;
   }
 
@@ -43,6 +43,6 @@ export function runPhaseEndScript(code: string, phase: 'focus' | 'break', string
   } catch (err) {
     const message = strings.scriptRunner.scriptError((err as Error).message);
     logger.error(message);
-    void vscode.window.showErrorMessage(`White Noise: ${message}`);
+    void vscode.window.showErrorMessage(`Noise Pomodoro: ${message}`);
   }
 }

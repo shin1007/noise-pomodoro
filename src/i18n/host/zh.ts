@@ -4,7 +4,7 @@ import type { HostStrings } from './index';
 const strings: HostStrings = {
   chrome: {
     htmlLang: 'zh-CN',
-    panelTitle: 'White Noise & Pomodoro',
+    panelTitle: 'Noise Pomodoro',
     loading: '加载中…',
   },
   statusBar: {
@@ -35,7 +35,7 @@ const strings: HostStrings = {
   },
   scriptRunner: {
     workspaceNotTrusted: '阶段结束脚本仅在受信任的工作区中运行。由于当前工作区不受信任，已跳过执行。',
-    featureDisabled: '已配置阶段结束脚本，但该功能已禁用。请在设置中启用 "whiteNoise.enablePhaseEndScripts" 以运行它。',
+    featureDisabled: '已配置阶段结束脚本，但该功能已禁用。请在设置中启用 "noisePomodoro.enablePhaseEndScripts" 以运行它。',
     scriptError: (message) => `阶段结束脚本出错：${message}`,
   },
   backgroundLabel: {

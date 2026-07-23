@@ -1,4 +1,4 @@
-import type { WhiteNoiseSettings } from '../protocol';
+import type { NoisePomodoroSettings } from '../protocol';
 import type { Locale } from '../i18n/locale';
 import { buildDefaultSettings, SETTINGS_SCHEMA_VERSION } from './settings';
 import { clone } from '../utils/clone';
@@ -43,11 +43,11 @@ function isValidPomodoro(value: unknown): boolean {
  * なお音量や周波数など数値の範囲は、再生直前（engineClient.ts / 各 worklet）と PomodoroTimer で
  * クランプするため、ここでは形（スキーマ）の検証に集中します。
  */
-export function migrateSettings(raw: unknown, locale: Locale): WhiteNoiseSettings {
+export function migrateSettings(raw: unknown, locale: Locale): NoisePomodoroSettings {
   if (!raw || typeof raw !== 'object') {
     return clone(buildDefaultSettings(locale));
   }
-  const data = raw as Partial<WhiteNoiseSettings>;
+  const data = raw as Partial<NoisePomodoroSettings>;
   if (
     data.schemaVersion !== SETTINGS_SCHEMA_VERSION ||
     !Array.isArray(data.ambientPresets) ||
@@ -61,5 +61,5 @@ export function migrateSettings(raw: unknown, locale: Locale): WhiteNoiseSetting
   ) {
     return clone(buildDefaultSettings(locale));
   }
-  return data as WhiteNoiseSettings;
+  return data as NoisePomodoroSettings;
 }

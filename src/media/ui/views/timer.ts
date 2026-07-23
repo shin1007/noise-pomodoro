@@ -1,4 +1,4 @@
-import type { WhiteNoiseSettings } from '../../../protocol';
+import type { NoisePomodoroSettings } from '../../../protocol';
 import { button, el } from '../dom';
 import { strings } from '../i18n';
 import {
@@ -50,7 +50,7 @@ function renderSleepTab(container: HTMLElement): void {
   updateTimerSeekbar('sleep-timer-seekbar', initialRemainingSec, initialLabel);
 }
 
-function renderPomodoroTab(container: HTMLElement, s: WhiteNoiseSettings): void {
+function renderPomodoroTab(container: HTMLElement, s: NoisePomodoroSettings): void {
   const sleepActive = listenTimerRemainingSec !== null;
   const isCounting = pomodoroState.runState !== 'stopped';
   // idle 中にダイヤルで編集する対象は、次に開始したときに使われる集中/休憩フェーズです。
@@ -119,7 +119,7 @@ function createPomodoroTransportButtons(): HTMLElement[] {
  * 分かりづらくなるため排他的に運用しますが、操作をブロックするのではなく、片方を操作したら
  * もう片方を打ち切って制御を明け渡す方式にしています（createPomodoroTransportButtons の
  * 開始ボタン、renderSleepTab/renderPomodoroTab 各ダイヤルの onSetMinutes を参照）。 */
-export function renderTimerSection(app: HTMLElement, s: WhiteNoiseSettings): void {
+export function renderTimerSection(app: HTMLElement, s: NoisePomodoroSettings): void {
   const pomodoroToggle = button(
     strings.timer.pomodoroToggle(timerTab === 'pomodoro'),
     'pomodoro-toggle-button' + (timerTab === 'pomodoro' ? ' is-on' : ''),

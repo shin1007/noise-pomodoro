@@ -25,7 +25,7 @@ export interface AppWebviewCallbacks {
  */
 export class AppWebview {
   private static current: AppWebview | undefined;
-  private static readonly viewType = 'whiteNoise.app';
+  private static readonly viewType = 'noisePomodoro.app';
 
   private readonly panel: vscode.WebviewPanel;
   private readonly disposables: vscode.Disposable[] = [];

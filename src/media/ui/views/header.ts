@@ -1,4 +1,4 @@
-import type { BackgroundConfig, BeatConfig, WhiteNoiseSettings } from '../../../protocol';
+import type { BackgroundConfig, BeatConfig, NoisePomodoroSettings } from '../../../protocol';
 import { bandForFrequency } from '../constants';
 import { button, el } from '../dom';
 import { strings } from '../i18n';
@@ -34,7 +34,7 @@ function buildPresetSummary(config: { background: BackgroundConfig; beat: BeatCo
   return `${bgLabel} · ${config.beat.baseFrequency}Hz (${strings.brainwaveBands[band.key]}${band.symbol})`;
 }
 
-export function renderHeader(app: HTMLElement, s: WhiteNoiseSettings): void {
+export function renderHeader(app: HTMLElement, s: NoisePomodoroSettings): void {
   const playButton = button(
     playback.status === 'playing' ? '■' : '▶',
     'play-icon-button' + (playback.status === 'playing' ? ' is-playing' : ''),
@@ -68,7 +68,7 @@ export function renderHeader(app: HTMLElement, s: WhiteNoiseSettings): void {
 
 /** 選択中プリセットのアイコン・名前・説明の編集と、既定へのリセット/現在設定の適用を行うカードです。
  * ヘッダーの再生行から分離し、ページ最下部に配置しています。 */
-export function renderPresetEditor(app: HTMLElement, s: WhiteNoiseSettings): void {
+export function renderPresetEditor(app: HTMLElement, s: NoisePomodoroSettings): void {
   const target = s.ambientPresets.find((preset) => preset.id === selectedPresetId);
   if (!target) {
     return;

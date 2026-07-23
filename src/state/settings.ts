@@ -1,9 +1,9 @@
-import type { AmbientPreset, PhaseConfig, PresetConfig, WhiteNoiseSettings } from '../protocol';
+import type { AmbientPreset, PhaseConfig, PresetConfig, NoisePomodoroSettings } from '../protocol';
 import type { Locale } from '../i18n/locale';
 import { DEFAULT_SETTINGS_STRINGS } from '../i18n/defaultSettings';
 
 export const SETTINGS_SCHEMA_VERSION = 2;
-export const SETTINGS_KEY = 'whiteNoise.settings';
+export const SETTINGS_KEY = 'noisePomodoro.settings';
 
 // デルタ 0.5-4Hz / シータ 4-8Hz / アルファ 8-13Hz / ベータ 13-30Hz / ガンマ 30-40Hz の
 // 代表周波数です。プリセット定義や UI の帯域チップから参照します。
@@ -146,7 +146,7 @@ function buildDefaultBreakPhase(locale: Locale): PhaseConfig {
   };
 }
 
-export function buildDefaultSettings(locale: Locale): WhiteNoiseSettings {
+export function buildDefaultSettings(locale: Locale): NoisePomodoroSettings {
   return {
     schemaVersion: SETTINGS_SCHEMA_VERSION,
     ambientPresets: buildDefaultAmbientPresets(locale),

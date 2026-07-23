@@ -1,16 +1,16 @@
-import type { WhiteNoiseSettings } from '../../../protocol';
+import type { NoisePomodoroSettings } from '../../../protocol';
 import { button, el } from '../dom';
 import { NOISE_CHIPS } from '../constants';
 import { strings } from '../i18n';
 import { post, selectedFileName, setBackground } from '../state';
 
-function renderFileControls(container: HTMLElement, s: WhiteNoiseSettings): void {
+function renderFileControls(container: HTMLElement, s: NoisePomodoroSettings): void {
   const fileName = selectedFileName ?? s.lastUsed.background.file?.fsPath.split(/[\\/]/).pop();
   container.appendChild(el('p', { className: 'status-line', text: fileName ? strings.background.fileLabel(fileName) : strings.background.noFileSelected }));
   container.appendChild(button(fileName ? strings.background.changeFile : strings.background.selectFile, 'preset-button', () => post({ type: 'ui:selectAudioFile' })));
 }
 
-function renderCustomCodeControls(container: HTMLElement, s: WhiteNoiseSettings): void {
+function renderCustomCodeControls(container: HTMLElement, s: NoisePomodoroSettings): void {
   container.appendChild(el('p', { className: 'status-line', text: strings.background.customCodeHint }));
 
   const textarea = el('textarea', { className: 'code-editor' });
@@ -29,7 +29,7 @@ function renderCustomCodeControls(container: HTMLElement, s: WhiteNoiseSettings)
   );
 }
 
-export function renderBackgroundSection(app: HTMLElement, s: WhiteNoiseSettings): void {
+export function renderBackgroundSection(app: HTMLElement, s: NoisePomodoroSettings): void {
   const section = el('div', { className: 'section' }, [el('h3', { text: strings.background.heading })]);
 
   const chips = el('div', { className: 'chip-row' });

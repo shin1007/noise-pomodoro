@@ -1,6 +1,6 @@
 {
-  "name": "white-noise",
-  "displayName": "White Noise & Pomodoro",
+  "name": "noise-pomodoro",
+  "displayName": "Noise Pomodoro",
   "description": "Procedural white/pink/brown noise, binaural beats, isochronic tones and solfeggio frequencies with an integrated Pomodoro timer.",
   "version": "0.0.1",
   "publisher": "shin1007",
@@ -9,7 +9,7 @@
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/shin1007/white-noise"
+    "url": "https://github.com/shin1007/noise-pomodoro"
   },
   "engines": {
     "vscode": "^1.90.0"
@@ -35,51 +35,51 @@
       "supported": "limited",
       "description": "フェーズ終了スクリプト（extension host で JS を実行する機能）は、信頼済みワークスペースでのみ動作します。",
       "restrictedConfigurations": [
-        "whiteNoise.enablePhaseEndScripts"
+        "noisePomodoro.enablePhaseEndScripts"
       ]
     }
   },
   "contributes": {
     "commands": [
       {
-        "command": "whiteNoise.openPanel",
-        "title": "White Noise: Open Panel"
+        "command": "noisePomodoro.openPanel",
+        "title": "Noise Pomodoro: Open Panel"
       },
       {
-        "command": "whiteNoise.play",
-        "title": "White Noise: Play"
+        "command": "noisePomodoro.play",
+        "title": "Noise Pomodoro: Play"
       },
       {
-        "command": "whiteNoise.stop",
-        "title": "White Noise: Stop"
+        "command": "noisePomodoro.stop",
+        "title": "Noise Pomodoro: Stop"
       },
       {
-        "command": "whiteNoise.pomodoro.start",
-        "title": "White Noise: Start Pomodoro"
+        "command": "noisePomodoro.pomodoro.start",
+        "title": "Noise Pomodoro: Start Pomodoro"
       },
       {
-        "command": "whiteNoise.pomodoro.pause",
-        "title": "White Noise: Pause Pomodoro"
+        "command": "noisePomodoro.pomodoro.pause",
+        "title": "Noise Pomodoro: Pause Pomodoro"
       },
       {
-        "command": "whiteNoise.pomodoro.reset",
-        "title": "White Noise: Reset Pomodoro"
+        "command": "noisePomodoro.pomodoro.reset",
+        "title": "Noise Pomodoro: Reset Pomodoro"
       },
       {
-        "command": "whiteNoise.pomodoro.skipPhase",
-        "title": "White Noise: Skip Pomodoro Phase"
+        "command": "noisePomodoro.pomodoro.skipPhase",
+        "title": "Noise Pomodoro: Skip Pomodoro Phase"
       }
     ],
     "configuration": {
-      "title": "White Noise & Pomodoro",
+      "title": "Noise Pomodoro",
       "properties": {
-        "whiteNoise.enablePhaseEndScripts": {
+        "noisePomodoro.enablePhaseEndScripts": {
           "type": "boolean",
           "default": false,
           "scope": "application",
           "description": "Allow phase-end custom scripts to run. These execute as a JS function inside the extension host (Node) with access to a small vscode API subset -- only enable this if you wrote the script yourself. For safety this can only be set in your user settings (not per-workspace), and scripts run only in trusted workspaces."
         },
-        "whiteNoise.statusBar.updateIntervalMs": {
+        "noisePomodoro.statusBar.updateIntervalMs": {
           "type": "number",
           "default": 1000,
           "description": "Pomodoro status bar tick interval in milliseconds."

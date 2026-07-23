@@ -3,7 +3,7 @@ import type { HostStrings } from './index';
 const strings: HostStrings = {
   chrome: {
     htmlLang: 'ja',
-    panelTitle: 'White Noise & Pomodoro',
+    panelTitle: 'Noise Pomodoro',
     loading: '読み込み中…',
   },
   statusBar: {
@@ -34,7 +34,7 @@ const strings: HostStrings = {
   },
   scriptRunner: {
     workspaceNotTrusted: 'フェーズ終了スクリプトは、信頼済みのワークスペースでのみ実行されます。現在のワークスペースは信頼されていないためスキップしました。',
-    featureDisabled: 'フェーズ終了スクリプトは設定されていますが無効です。実行するには設定で "whiteNoise.enablePhaseEndScripts" を有効にしてください。',
+    featureDisabled: 'フェーズ終了スクリプトは設定されていますが無効です。実行するには設定で "noisePomodoro.enablePhaseEndScripts" を有効にしてください。',
     scriptError: (message) => `フェーズ終了スクリプトのエラー: ${message}`,
   },
   backgroundLabel: {

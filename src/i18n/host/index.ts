@@ -1,5 +1,5 @@
 // 拡張機能ホスト（dist/extension.js）だけが使う文言辞書です。Webview 側の文言（src/i18n/ui）
-// とは意図的に共有しません（バンドルごとに完結させるため）。"White Noise" というブランド名
+// とは意図的に共有しません（バンドルごとに完結させるため）。"Noise Pomodoro" というブランド名
 // 自体は VS Code 本体を翻訳しないのと同様、各ロケールでも訳さず据え置いています。
 
 import type { Locale } from '../locale';

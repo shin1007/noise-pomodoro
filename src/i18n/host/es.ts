@@ -3,7 +3,7 @@ import type { HostStrings } from './index';
 const strings: HostStrings = {
   chrome: {
     htmlLang: 'es',
-    panelTitle: 'White Noise & Pomodoro',
+    panelTitle: 'Noise Pomodoro',
     loading: 'Cargando…',
   },
   statusBar: {
@@ -34,7 +34,7 @@ const strings: HostStrings = {
   },
   scriptRunner: {
     workspaceNotTrusted: 'Los scripts de fin de fase solo se ejecutan en espacios de trabajo de confianza. Omitido porque el espacio de trabajo actual no es de confianza.',
-    featureDisabled: 'Hay un script de fin de fase configurado pero deshabilitado. Habilite "whiteNoise.enablePhaseEndScripts" en la configuración para ejecutarlo.',
+    featureDisabled: 'Hay un script de fin de fase configurado pero deshabilitado. Habilite "noisePomodoro.enablePhaseEndScripts" en la configuración para ejecutarlo.',
     scriptError: (message) => `Error en el script de fin de fase: ${message}`,
   },
   backgroundLabel: {

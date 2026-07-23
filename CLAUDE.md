@@ -1,4 +1,4 @@
-# white-noise
+# noise-pomodoro
 
 VS Code extension: ambient noise/binaural-beat generator + Pomodoro timer, playing entirely in a WebviewPanel via Web Audio / AudioWorklet. No network calls, no LLM APIs.
 
@@ -21,7 +21,7 @@ Message contracts between them are type-only, so they're safe to import across b
 ## Key files
 
 - `src/extension.ts` — activation, all `UiToExtMessage` handling (`dispatchUiMessage`), status bar wiring, Pomodoro→preset/chime/script hookup. Repeated "mutate settings → persist → push/broadcast" cases go through the `updateLiveConfig`/`updateSettings` helpers defined near the top of `dispatchUiMessage` — reuse them for new `ui:setXxx` cases instead of re-inlining the pattern.
-- `src/state/SettingsStore.ts` / `src/state/settings.ts` / `src/state/migrations.ts` — persisted settings (`WhiteNoiseSettings`, schema v2), defaults, and the deliberate "reset to defaults on any schema mismatch" migration policy (not a real per-field migrator — acceptable for this pre-1.0 personal project, don't "fix" it into one without being asked).
+- `src/state/SettingsStore.ts` / `src/state/settings.ts` / `src/state/migrations.ts` — persisted settings (`NoisePomodoroSettings`, schema v2), defaults, and the deliberate "reset to defaults on any schema mismatch" migration policy (not a real per-field migrator — acceptable for this pre-1.0 personal project, don't "fix" it into one without being asked).
 - `src/ui/AppWebview.ts` + `src/ui/appHtml.ts` — the single WebviewPanel hosting both UI and audio engine in one document (required so `AudioContext.resume()` sees a real user gesture).
 - `src/media/ui/state.ts` — webview-side shared state + actions; `src/media/ui/views/*.ts` — one render function per UI section (header/controls/background/beat/presets/presetEditor/pomodoro), each importing only what it needs from `state.ts`/`dom.ts`/`constants.ts`. `main.ts` is just the render orchestrator + message wiring.
 - `src/media/audioEngine/engineClient.ts` — owns the `AudioContext` graph: `backgroundGain`/`beatGain` → `masterGain`. Background (noise/file/custom) and beat (binaural/isochronic) are independent layers mixed at a fixed ~0.86/0.12 ratio when both are active. Uses a `mixEpoch` counter to discard stale async work (file decode, resume) when play/stop is called again before it resolves — preserve this pattern if touching async playback logic.

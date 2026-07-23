@@ -3,7 +3,7 @@ import type { HostStrings } from './index';
 const strings: HostStrings = {
   chrome: {
     htmlLang: 'en',
-    panelTitle: 'White Noise & Pomodoro',
+    panelTitle: 'Noise Pomodoro',
     loading: 'Loading…',
   },
   statusBar: {
@@ -34,7 +34,7 @@ const strings: HostStrings = {
   },
   scriptRunner: {
     workspaceNotTrusted: 'Phase-end scripts only run in trusted workspaces. Skipped because the current workspace is not trusted.',
-    featureDisabled: 'A phase-end script is configured but disabled. Enable "whiteNoise.enablePhaseEndScripts" in settings to run it.',
+    featureDisabled: 'A phase-end script is configured but disabled. Enable "noisePomodoro.enablePhaseEndScripts" in settings to run it.',
     scriptError: (message) => `Phase-end script error: ${message}`,
   },
   backgroundLabel: {

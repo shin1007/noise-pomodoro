@@ -97,7 +97,7 @@ export interface PomodoroState {
   elapsedBeforePauseSec: number;
 }
 
-export interface WhiteNoiseSettings {
+export interface NoisePomodoroSettings {
   schemaVersion: number;
   ambientPresets: AmbientPreset[];
   chimePresets: PresetConfig[];
@@ -152,7 +152,7 @@ export type UiToExtMessage =
 
 // ---- extension から UI へ ----
 export type ExtToUiMessage =
-  | { type: 'ext:stateSync'; settings: WhiteNoiseSettings; pomodoro: PomodoroState; playback: PlaybackState }
+  | { type: 'ext:stateSync'; settings: NoisePomodoroSettings; pomodoro: PomodoroState; playback: PlaybackState }
   | { type: 'ext:playbackState'; playback: PlaybackState }
   | { type: 'ext:pomodoroTick'; pomodoro: PomodoroState; remainingSec: number; totalSec: number }
   | { type: 'ext:fileSelected'; fileName: string; fsPath: string }
