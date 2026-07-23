@@ -8,6 +8,11 @@ import en from './en';
 import fr from './fr';
 import zh from './zh';
 import es from './es';
+import hi from './hi';
+import pt from './pt';
+import de from './de';
+import ru from './ru';
+import ko from './ko';
 
 export interface HostStrings {
   chrome: {
@@ -54,4 +59,4 @@ export interface HostStrings {
   };
 }
 
-export const HOST_STRINGS: Record<Locale, HostStrings> = { ja, en, fr, zh, es };
+export const HOST_STRINGS: Record<Locale, HostStrings> = { ja, en, fr, zh, es, hi, pt, de, ru, ko };

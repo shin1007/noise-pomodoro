@@ -8,6 +8,11 @@ import en from './en';
 import fr from './fr';
 import zh from './zh';
 import es from './es';
+import hi from './hi';
+import pt from './pt';
+import de from './de';
+import ru from './ru';
+import ko from './ko';
 
 export type BandKey = 'delta' | 'theta' | 'alpha' | 'beta' | 'gamma';
 
@@ -73,4 +78,4 @@ export interface UiStrings {
   };
 }
 
-export const UI_STRINGS: Record<Locale, UiStrings> = { ja, en, fr, zh, es };
+export const UI_STRINGS: Record<Locale, UiStrings> = { ja, en, fr, zh, es, hi, pt, de, ru, ko };

@@ -10,6 +10,16 @@ describe('resolveLocale', () => {
     assert.strictEqual(resolveLocale('es'), 'es');
     assert.strictEqual(resolveLocale('es-ES'), 'es');
     assert.strictEqual(resolveLocale('ja'), 'ja');
+    assert.strictEqual(resolveLocale('hi'), 'hi');
+    assert.strictEqual(resolveLocale('hi-IN'), 'hi');
+    assert.strictEqual(resolveLocale('pt'), 'pt');
+    assert.strictEqual(resolveLocale('pt-BR'), 'pt');
+    assert.strictEqual(resolveLocale('de'), 'de');
+    assert.strictEqual(resolveLocale('de-DE'), 'de');
+    assert.strictEqual(resolveLocale('ru'), 'ru');
+    assert.strictEqual(resolveLocale('ru-RU'), 'ru');
+    assert.strictEqual(resolveLocale('ko'), 'ko');
+    assert.strictEqual(resolveLocale('ko-KR'), 'ko');
   });
 
   it('folds all Chinese variants into the single zh locale', () => {
@@ -23,8 +33,7 @@ describe('resolveLocale', () => {
   });
 
   it('falls back to en for unsupported or missing language tags', () => {
-    assert.strictEqual(resolveLocale('de'), 'en');
-    assert.strictEqual(resolveLocale('ko'), 'en');
+    assert.strictEqual(resolveLocale('it'), 'en');
     assert.strictEqual(resolveLocale(undefined), 'en');
     assert.strictEqual(resolveLocale(''), 'en');
   });
