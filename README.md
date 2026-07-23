@@ -1,49 +1,61 @@
 # Noise Pomodoro
 
-ホワイトノイズ、ピンクノイズ、ブラウンノイズ、アイソクロニックトーン、バイノーラルビート、ソルフェジオ周波数を生成し、ローカル音声ファイルの再生と JavaScript のカスタムコード再生にも対応した拡張機能です。ポモドーロタイマーも内蔵しており、集中時間と休憩時間で別々のサウンドを切り替えられます。
+[日本語](README.ja.md) | [Français](README.fr.md) | [中文](README.zh.md) | [Español](README.es.md)
 
-## 機能
+Generates white, pink, and brown noise, isochronic tones, binaural beats, and solfeggio frequencies, with support for playing local audio files and running custom JavaScript waveform code. Includes a built-in Pomodoro timer that lets you assign a different sound to your focus and break periods.
 
-- **生成音源**: ホワイトノイズ、ピンクノイズ、ブラウンノイズ、アイソクロニックトーン、バイノーラルビート、ソルフェジオ周波数を、AudioWorklet 上で生成します。UI 操作で音切れしにくい構成です。
-- **ファイル再生**: ローカルの音声ファイルを指定して再生できます。
-- **カスタムコード**: `t` を経過秒、`params` を任意パラメータとして扱う JavaScript 式を書き、-1 から 1 の範囲の波形をその場で鳴らせます。
-- **ポモドーロタイマー**: 集中時間と休憩時間を個別に設定でき、各フェーズにサウンドを割り当てられます。自動切り替え、終了時トースト、ワンショット通知音、カスタムスクリプトも使えます。
-- **ステータスバー中心**: ステータスバーからパネルを開けます。パネルを閉じても再生は継続し、Zen Mode 中でもステータスバーが操作の入口になります。
+## Screenshots
 
-## 使い方
+<table>
+<tr>
+<td align="center" width="33%"><img src="images/screenshots/main-panel.png" width="280" alt="Default panel view" /><br />Default view</td>
+<td align="center" width="33%"><img src="images/screenshots/playing-preset.png" width="280" alt="A preset actively playing" /><br />Preset playing</td>
+<td align="center" width="33%"><img src="images/screenshots/pomodoro.png" width="280" alt="Pomodoro timer running" /><br />Pomodoro running</td>
+</tr>
+</table>
 
-1. ステータスバーのアイコンをクリックするか、コマンドパレットで Noise Pomodoro: Open Panel を実行してパネルを開きます。
-2. サウンドプリセットを選ぶと再生が始まります。
-3. ポモドーロ欄で集中時間・休憩時間・各フェーズのサウンドを設定し、Start を押します。
+## Features
 
-## テスト方法
+- **Generated sound sources**: White, pink, and brown noise, isochronic tones, binaural beats, and solfeggio frequencies, all generated on an AudioWorklet for glitch-free playback during UI interaction.
+- **File playback**: Play a local audio file of your choice.
+- **Custom code**: Write a JavaScript expression using `t` (elapsed seconds) and `params` (arbitrary parameters) to generate a waveform in the range -1 to 1 and play it on the fly.
+- **Pomodoro timer**: Set focus and break durations independently and assign a sound to each phase. Supports automatic phase switching, an end-of-phase toast, a one-shot chime, and custom scripts.
+- **Status bar-first**: Open the panel from the status bar. Playback keeps running even when the panel is closed, and the status bar stays your control point even in Zen Mode.
 
-拡張機能開発が初めてなら、次の順で確認すると分かりやすいです。
+## Usage
 
-1. ターミナルで npm install を実行します。
-2. npm run watch を実行して、ソース変更が自動ビルドされる状態にします。
-3. VS Code で F5 を押し、Extension Development Host を起動します。
-4. 開いた別ウィンドウでコマンドパレットを開き、Noise Pomodoro: Open Panel を実行します。
-5. 画面で次を順番に試します。
-	- プリセットを選んで音が鳴るか確認する。
-	- パネルを閉じても再生が続くか確認する。
-	- ステータスバーの表示が再生中のプリセット名に変わるか確認する。
-	- ポモドーロを Start / Pause / Reset / Skip で操作して、表示と状態が連動するか確認する。
-	- ファイル再生プリセットがある場合は、ローカル音声ファイルを選んで再生できるか確認する。
-	- カスタムコードモードがある場合は、簡単な式を入力して適用し、エラー時にメッセージが出るか確認する。
-6. ログを確認したい場合は、VS Code の出力パネルで Noise Pomodoro を開きます。
-7. 変更を入れたら F5 の開発ホストで動作確認を繰り返します。UI 変更ならパネルを再表示、実装変更なら watch の再ビルド後に再テストします。
+1. Click the status bar icon, or run "Noise Pomodoro: Open Panel" from the Command Palette, to open the panel.
+2. Choose a sound preset to start playback.
+3. In the Pomodoro section, set the focus/break durations and the sound for each phase, then press Start.
 
-## 設定
+## Testing (for contributors)
 
-- `noisePomodoro.enablePhaseEndScripts`: フェーズ終了時のカスタムスクリプトを許可します。既定は `false` です。拡張機能ホストと Node の権限で実行されるため、自分で書いたスクリプトだけを使ってください。
-- `noisePomodoro.statusBar.updateIntervalMs`: ポモドーロのステータスバー更新間隔です。既定は `1000` ミリ秒です。
+If you're new to extension development, checking things in this order should help:
 
-## 開発
+1. Run `npm install` in the terminal.
+2. Run `npm run watch` so source changes rebuild automatically.
+3. Press F5 in VS Code to launch the Extension Development Host.
+4. In the new window, open the Command Palette and run "Noise Pomodoro: Open Panel".
+5. Try the following in order:
+	- Select a preset and confirm sound plays.
+	- Confirm playback continues after closing the panel.
+	- Confirm the status bar shows the name of the currently playing preset.
+	- Operate the Pomodoro with Start / Pause / Reset / Skip and confirm the display and state stay in sync.
+	- If a file-playback preset exists, confirm you can select and play a local audio file.
+	- If custom code mode exists, enter a simple expression, apply it, and confirm an error message appears on failure.
+6. To check logs, open the "Noise Pomodoro" output channel in VS Code.
+7. After making changes, repeat verification in the F5 dev host: re-show the panel for UI changes, or wait for the watch rebuild and retest for implementation changes.
+
+## Settings
+
+- `noisePomodoro.enablePhaseEndScripts`: Allow custom scripts to run at phase end. Default `false`. Runs with extension host / Node privileges, so only use scripts you wrote yourself.
+- `noisePomodoro.statusBar.updateIntervalMs`: Pomodoro status bar update interval, in milliseconds. Default `1000`.
+
+## Development
 
 ```bash
 npm install
 npm run watch
 ```
 
-VS Code で F5 を押すと、Extension Development Host を起動できます。
+Press F5 in VS Code to launch the Extension Development Host.
