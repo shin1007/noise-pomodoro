@@ -2,7 +2,7 @@
   "name": "noise-pomodoro",
   "displayName": "Noise Pomodoro",
   "description": "Procedural white/pink/brown noise, binaural beats, isochronic tones and solfeggio frequencies with an integrated Pomodoro timer.",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "shin1007",
   "private": true,
   "license": "MIT",
