@@ -70,7 +70,11 @@ async function ensureAudioContext(): Promise<AudioContext> {
   if (audioContext) {
     return audioContext;
   }
-  audioContext = new AudioContext();
+  // 既定の 'interactive' は低レイテンシ優先で内部バッファが小さく、VS Code のように
+  // レンダラープロセスが他の処理と同居する環境では瞬間的な負荷でバッファアンダーラン
+  // （「プツッ」というクリック音）を起こしやすい。このアプリは操作への即応性が要らない
+  // 背景音生成なので、'playback' で途切れにくさを優先する。
+  audioContext = new AudioContext({ latencyHint: 'playback' });
   audioContext.addEventListener('statechange', () => {
     if (audioContext?.state === 'suspended' && shouldBePlaying) {
       void audioContext.resume();
