@@ -8,9 +8,10 @@ Generates white, pink, and brown noise, isochronic tones, binaural beats, and so
 
 <table>
 <tr>
-<td align="center" width="33%"><img src="images/screenshots/main-panel.png" width="280" alt="Default panel view" /><br />Default view</td>
-<td align="center" width="33%"><img src="images/screenshots/playing-preset.png" width="280" alt="A preset actively playing" /><br />Preset playing</td>
-<td align="center" width="33%"><img src="images/screenshots/pomodoro.png" width="280" alt="Pomodoro timer running" /><br />Pomodoro running</td>
+<td align="center" width="25%"><img src="images/screenshots/main-panel.png" width="280" alt="Default panel view" /><br />Default view</td>
+<td align="center" width="25%"><img src="images/screenshots/playing-preset.png" width="280" alt="A preset actively playing" /><br />Preset playing</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro.png" width="280" alt="Pomodoro timer running" /><br />Pomodoro running</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro-settings.png" width="280" alt="Pomodoro settings modal" /><br />Pomodoro settings</td>
 </tr>
 </table>
 

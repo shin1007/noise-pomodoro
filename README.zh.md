@@ -8,9 +8,10 @@
 
 <table>
 <tr>
-<td align="center" width="33%"><img src="images/screenshots/main-panel.png" width="280" alt="面板默认视图" /><br />默认视图</td>
-<td align="center" width="33%"><img src="images/screenshots/playing-preset.png" width="280" alt="预设正在播放" /><br />预设播放中</td>
-<td align="center" width="33%"><img src="images/screenshots/pomodoro.png" width="280" alt="番茄钟正在运行" /><br />番茄钟运行中</td>
+<td align="center" width="25%"><img src="images/screenshots/main-panel.png" width="280" alt="面板默认视图" /><br />默认视图</td>
+<td align="center" width="25%"><img src="images/screenshots/playing-preset.png" width="280" alt="预设正在播放" /><br />预设播放中</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro.png" width="280" alt="番茄钟正在运行" /><br />番茄钟运行中</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro-settings.png" width="280" alt="番茄钟设置窗口" /><br />番茄钟设置</td>
 </tr>
 </table>
 

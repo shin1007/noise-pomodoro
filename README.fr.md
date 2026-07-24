@@ -8,9 +8,10 @@ Génère du bruit blanc, rose et brun, des tonalités isochrones, des battements
 
 <table>
 <tr>
-<td align="center" width="33%"><img src="images/screenshots/main-panel.png" width="280" alt="Vue par défaut du panneau" /><br />Vue par défaut</td>
-<td align="center" width="33%"><img src="images/screenshots/playing-preset.png" width="280" alt="Un préréglage en cours de lecture" /><br />Préréglage en lecture</td>
-<td align="center" width="33%"><img src="images/screenshots/pomodoro.png" width="280" alt="Minuteur Pomodoro en cours" /><br />Pomodoro en cours</td>
+<td align="center" width="25%"><img src="images/screenshots/main-panel.png" width="280" alt="Vue par défaut du panneau" /><br />Vue par défaut</td>
+<td align="center" width="25%"><img src="images/screenshots/playing-preset.png" width="280" alt="Un préréglage en cours de lecture" /><br />Préréglage en lecture</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro.png" width="280" alt="Minuteur Pomodoro en cours" /><br />Pomodoro en cours</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro-settings.png" width="280" alt="Fenêtre des réglages Pomodoro" /><br />Réglages Pomodoro</td>
 </tr>
 </table>
 

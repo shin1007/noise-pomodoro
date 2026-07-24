@@ -8,9 +8,10 @@
 
 <table>
 <tr>
-<td align="center" width="33%"><img src="images/screenshots/main-panel.png" width="280" alt="パネルの初期表示" /><br />初期表示</td>
-<td align="center" width="33%"><img src="images/screenshots/playing-preset.png" width="280" alt="プリセット再生中" /><br />プリセット再生中</td>
-<td align="center" width="33%"><img src="images/screenshots/pomodoro.png" width="280" alt="ポモドーロ実行中" /><br />ポモドーロ実行中</td>
+<td align="center" width="25%"><img src="images/screenshots/main-panel.png" width="280" alt="パネルの初期表示" /><br />初期表示</td>
+<td align="center" width="25%"><img src="images/screenshots/playing-preset.png" width="280" alt="プリセット再生中" /><br />プリセット再生中</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro.png" width="280" alt="ポモドーロ実行中" /><br />ポモドーロ実行中</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro-settings.png" width="280" alt="ポモドーロ設定画面" /><br />ポモドーロ設定</td>
 </tr>
 </table>
 

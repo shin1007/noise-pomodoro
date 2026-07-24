@@ -8,9 +8,10 @@ Genera ruido blanco, rosa y marrón, tonos isocrónicos, pulsaciones binaurales 
 
 <table>
 <tr>
-<td align="center" width="33%"><img src="images/screenshots/main-panel.png" width="280" alt="Vista predeterminada del panel" /><br />Vista predeterminada</td>
-<td align="center" width="33%"><img src="images/screenshots/playing-preset.png" width="280" alt="Un preset reproduciéndose" /><br />Preset reproduciéndose</td>
-<td align="center" width="33%"><img src="images/screenshots/pomodoro.png" width="280" alt="Temporizador Pomodoro en curso" /><br />Pomodoro en curso</td>
+<td align="center" width="25%"><img src="images/screenshots/main-panel.png" width="280" alt="Vista predeterminada del panel" /><br />Vista predeterminada</td>
+<td align="center" width="25%"><img src="images/screenshots/playing-preset.png" width="280" alt="Un preset reproduciéndose" /><br />Preset reproduciéndose</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro.png" width="280" alt="Temporizador Pomodoro en curso" /><br />Pomodoro en curso</td>
+<td align="center" width="25%"><img src="images/screenshots/pomodoro-settings.png" width="280" alt="Ventana de ajustes de Pomodoro" /><br />Ajustes de Pomodoro</td>
 </tr>
 </table>
 
